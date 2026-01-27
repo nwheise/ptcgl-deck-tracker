@@ -64,18 +64,49 @@
 
     <!-- Import Deck Section -->
     <div class="import-section">
-      <button id="import-btn" class="action-btn secondary">Import Deck</button>
+      <button id="import-btn" class="action-btn secondary">Build Deck</button>
     </div>
   </div>
 
-  <!-- Import Modal -->
-  <div id="import-modal" class="modal">
-    <div class="modal-content">
-      <h3>Import Deck List</h3>
-      <textarea id="deck-input" placeholder="Paste your deck list here (format: 4 Pikachu ex, 3 Charizard, etc.)"></textarea>
+  <!-- Deck Builder Modal -->
+  <div id="deck-builder-modal" class="modal">
+    <div class="modal-content deck-builder">
+      <div class="deck-builder-header">
+        <h3>Deck Builder</h3>
+        <div class="deck-builder-stats">
+          <span id="builder-card-count">0</span>/60 cards
+        </div>
+      </div>
+
+      <!-- Card Search -->
+      <div class="card-search-section">
+        <input type="text" id="card-search-input" placeholder="Search for cards..." autocomplete="off" />
+        <div class="search-filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="Pokemon">Pokemon</button>
+          <button class="filter-btn" data-filter="Trainer">Trainer</button>
+          <button class="filter-btn" data-filter="Energy">Energy</button>
+        </div>
+      </div>
+
+      <!-- Search Results -->
+      <div id="search-results" class="search-results">
+        <div class="search-placeholder">Type to search for cards...</div>
+      </div>
+
+      <!-- Current Deck -->
+      <div class="current-deck-section">
+        <div class="section-header">
+          <span>Current Deck</span>
+          <button id="clear-deck-btn" class="small-btn">Clear</button>
+        </div>
+        <div id="current-deck-list" class="current-deck-list"></div>
+      </div>
+
+      <!-- Modal Actions -->
       <div class="modal-buttons">
-        <button id="confirm-import" class="action-btn">Import</button>
-        <button id="cancel-import" class="action-btn secondary">Cancel</button>
+        <button id="save-deck-btn" class="action-btn">Save Deck</button>
+        <button id="cancel-deck-btn" class="action-btn secondary">Cancel</button>
       </div>
     </div>
   </div>

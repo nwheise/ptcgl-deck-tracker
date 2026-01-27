@@ -1,4 +1,8 @@
 const { ipcRenderer } = require('electron');
+const cardDatabase = require('./card-database');
+
+// Load the card database
+cardDatabase.load();
 
 // Game State
 let gameState = {
@@ -7,25 +11,10 @@ let gameState = {
   prizes: 6
 };
 
-// Sample deck for demo (will be replaced by user import)
-const sampleDeck = [
-  { name: 'Pikachu ex', count: 3, inDeck: 3, type: 'Pokemon' },
-  { name: 'Zapdos ex', count: 2, inDeck: 2, type: 'Pokemon' },
-  { name: 'Pawmi', count: 4, inDeck: 4, type: 'Pokemon' },
-  { name: 'Pawmo', count: 2, inDeck: 2, type: 'Pokemon' },
-  { name: 'Pawmot', count: 2, inDeck: 2, type: 'Pokemon' },
-  { name: 'Electric Generator', count: 4, inDeck: 4, type: 'Trainer' },
-  { name: 'Professor\'s Research', count: 4, inDeck: 4, type: 'Trainer' },
-  { name: 'Ultra Ball', count: 4, inDeck: 4, type: 'Trainer' },
-  { name: 'Nest Ball', count: 3, inDeck: 3, type: 'Trainer' },
-  { name: 'Rare Candy', count: 2, inDeck: 2, type: 'Trainer' },
-  { name: 'Boss\'s Orders', count: 2, inDeck: 2, type: 'Trainer' },
-  { name: 'Switch', count: 2, inDeck: 2, type: 'Trainer' },
-  { name: 'Electric Energy', count: 12, inDeck: 12, type: 'Energy' },
-];
-
-// Initialize with sample deck
-gameState.deck = JSON.parse(JSON.stringify(sampleDeck));
+// Deck Builder State
+let builderDeck = [];
+let currentFilter = 'all';
+let searchDebounceTimer = null;
 
 // DOM Elements
 const deckList = document.getElementById('deck-list');
@@ -41,10 +30,17 @@ const resetBtn = document.getElementById('reset-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const importBtn = document.getElementById('import-btn');
-const importModal = document.getElementById('import-modal');
-const confirmImportBtn = document.getElementById('confirm-import');
-const cancelImportBtn = document.getElementById('cancel-import');
-const deckInput = document.getElementById('deck-input');
+
+// Deck Builder DOM Elements
+const deckBuilderModal = document.getElementById('deck-builder-modal');
+const cardSearchInput = document.getElementById('card-search-input');
+const searchResults = document.getElementById('search-results');
+const currentDeckList = document.getElementById('current-deck-list');
+const builderCardCount = document.getElementById('builder-card-count');
+const filterBtns = document.querySelectorAll('.filter-btn');
+const clearDeckBtn = document.getElementById('clear-deck-btn');
+const saveDeckBtn = document.getElementById('save-deck-btn');
+const cancelDeckBtn = document.getElementById('cancel-deck-btn');
 
 // Initialize UI
 function init() {
@@ -57,13 +53,13 @@ function init() {
 // Render deck list
 function renderDeckList(filter = '') {
   deckList.innerHTML = '';
-  
-  const filteredDeck = gameState.deck.filter(card => 
+
+  const filteredDeck = gameState.deck.filter(card =>
     card.name.toLowerCase().includes(filter.toLowerCase())
   );
 
   if (filteredDeck.length === 0) {
-    deckList.innerHTML = '<div class="empty-state">No cards found</div>';
+    deckList.innerHTML = '<div class="empty-state">No cards in deck. Click "Build Deck" to add cards.</div>';
     return;
   }
 
@@ -73,7 +69,7 @@ function renderDeckList(filter = '') {
     if (card.inDeck === 0) {
       cardEl.classList.add('drawn');
     }
-    
+
     cardEl.innerHTML = `
       <span class="card-name">${card.name}</span>
       <span class="card-count">${card.inDeck}/${card.count}</span>
@@ -82,7 +78,7 @@ function renderDeckList(filter = '') {
         <button class="card-btn discard" data-action="discard" data-index="${index}" title="Discard">🗑️</button>
       </div>
     `;
-    
+
     deckList.appendChild(cardEl);
   });
 }
@@ -90,7 +86,7 @@ function renderDeckList(filter = '') {
 // Render discard list
 function renderDiscardList() {
   discardList.innerHTML = '';
-  
+
   if (gameState.discard.length === 0) {
     discardList.innerHTML = '<div class="empty-state">Discard pile is empty</div>';
     return;
@@ -108,12 +104,12 @@ function renderDiscardList() {
   Object.values(discardMap).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
-    
+
     cardEl.innerHTML = `
       <span class="card-name">${card.name}</span>
       <span class="card-count">${card.discardCount}</span>
     `;
-    
+
     discardList.appendChild(cardEl);
   });
 }
@@ -167,62 +163,241 @@ function resetGame() {
     });
     gameState.discard = [];
     gameState.prizes = 6;
-    
+
     renderDeckList(searchInput.value);
     renderDiscardList();
     updateStats();
   }
 }
 
-// Import deck from text
-function importDeck(deckText) {
-  const lines = deckText.trim().split('\n');
-  const newDeck = [];
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    
-    // Parse format: "4 Pikachu ex" or "4x Pikachu ex" or just "Pikachu ex"
-    const match = trimmed.match(/^(\d+)\s*x?\s+(.+)$/i);
-    
-    if (match) {
-      const count = parseInt(match[1]);
-      const name = match[2].trim();
-      
-      // Determine card type (simple heuristic)
-      let type = 'Trainer';
-      if (name.toLowerCase().includes('energy')) {
-        type = 'Energy';
-      } else if (name.match(/\b(ex|V|VMAX|GX)\b/i) || !name.match(/\b(ball|search|research|boss|switch|candy)\b/i)) {
-        // If it has ex/V/VMAX/GX or doesn't have common trainer words, assume Pokemon
-        if (name.toLowerCase().includes('energy')) {
-          type = 'Energy';
-        } else {
-          type = 'Pokemon';
-        }
-      }
-      
-      newDeck.push({
-        name: name,
-        count: count,
-        inDeck: count,
-        type: type
-      });
+// ========== Deck Builder Functions ==========
+
+function openDeckBuilder() {
+  // Copy current deck to builder
+  builderDeck = gameState.deck.map(card => ({
+    id: card.id,
+    name: card.name,
+    count: card.count,
+    type: card.type,
+    imageUrl: card.imageUrl
+  }));
+
+  currentFilter = 'all';
+  filterBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === 'all');
+  });
+
+  cardSearchInput.value = '';
+  searchResults.innerHTML = '<div class="search-placeholder">Type to search for cards...</div>';
+
+  renderBuilderDeck();
+  deckBuilderModal.classList.add('active');
+  cardSearchInput.focus();
+}
+
+function closeDeckBuilder() {
+  deckBuilderModal.classList.remove('active');
+}
+
+function getBuilderCardCount() {
+  return builderDeck.reduce((sum, card) => sum + card.count, 0);
+}
+
+function updateBuilderStats() {
+  builderCardCount.textContent = getBuilderCardCount();
+}
+
+function renderBuilderDeck() {
+  currentDeckList.innerHTML = '';
+  updateBuilderStats();
+
+  if (builderDeck.length === 0) {
+    currentDeckList.innerHTML = '<div class="empty-state">No cards added yet</div>';
+    return;
+  }
+
+  // Group by type
+  const pokemon = builderDeck.filter(c => c.type === 'Pokemon');
+  const trainers = builderDeck.filter(c => c.type === 'Trainer');
+  const energy = builderDeck.filter(c => c.type === 'Energy');
+
+  const renderGroup = (cards, label) => {
+    if (cards.length === 0) return;
+
+    const groupEl = document.createElement('div');
+    groupEl.className = 'deck-group';
+
+    const groupCount = cards.reduce((sum, c) => sum + c.count, 0);
+    groupEl.innerHTML = `<div class="deck-group-header">${label} (${groupCount})</div>`;
+
+    cards.forEach(card => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'builder-card-item';
+      cardEl.innerHTML = `
+        <span class="card-name">${card.name}</span>
+        <div class="card-quantity">
+          <button class="qty-btn" data-action="decrease" data-id="${card.id}">-</button>
+          <span class="qty-value">${card.count}</span>
+          <button class="qty-btn" data-action="increase" data-id="${card.id}">+</button>
+        </div>
+      `;
+      groupEl.appendChild(cardEl);
+    });
+
+    currentDeckList.appendChild(groupEl);
+  };
+
+  renderGroup(pokemon, 'Pokemon');
+  renderGroup(trainers, 'Trainer');
+  renderGroup(energy, 'Energy');
+}
+
+function searchCards(query) {
+  if (!query || query.length < 2) {
+    searchResults.innerHTML = '<div class="search-placeholder">Type at least 2 characters to search...</div>';
+    return;
+  }
+
+  const supertypeFilter = currentFilter === 'all' ? null :
+    (currentFilter === 'Pokemon' ? 'Pokémon' : currentFilter);
+
+  const results = cardDatabase.search(query, {
+    limit: 30,
+    supertype: supertypeFilter
+  });
+
+  if (results.length === 0) {
+    searchResults.innerHTML = '<div class="search-placeholder">No cards found</div>';
+    return;
+  }
+
+  searchResults.innerHTML = '';
+
+  results.forEach(card => {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'search-result-item';
+
+    // Determine card type for display
+    const displayType = card.supertype === 'Pokémon' ? 'Pokemon' : card.supertype;
+    const subtypeText = card.subtypes.length > 0 ? ` - ${card.subtypes.join(', ')}` : '';
+
+    cardEl.innerHTML = `
+      <div class="result-card-info">
+        <img class="result-card-image" src="${card.images.small || ''}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'" />
+        <div class="result-card-details">
+          <div class="result-card-name">${card.name}</div>
+          <div class="result-card-meta">${displayType}${subtypeText} - ${card.set}</div>
+        </div>
+      </div>
+      <button class="add-card-btn" data-card-id="${card.id}">Add</button>
+    `;
+
+    searchResults.appendChild(cardEl);
+  });
+}
+
+function addCardToDeck(cardId) {
+  const card = cardDatabase.getCardById(cardId);
+  if (!card) return;
+
+  // Check deck limit
+  if (getBuilderCardCount() >= 60) {
+    alert('Deck cannot have more than 60 cards!');
+    return;
+  }
+
+  // Determine card type
+  const cardType = card.supertype === 'Pokémon' ? 'Pokemon' : card.supertype;
+
+  // Check if card already exists in deck
+  const existingCard = builderDeck.find(c => c.name === card.name);
+
+  if (existingCard) {
+    // Check 4-card limit (except basic energy)
+    const isBasicEnergy = card.supertype === 'Energy' &&
+      (!card.subtypes || card.subtypes.length === 0 || card.subtypes.includes('Basic'));
+
+    if (!isBasicEnergy && existingCard.count >= 4) {
+      alert('You can only have 4 copies of a card (except Basic Energy)!');
+      return;
+    }
+
+    existingCard.count++;
+  } else {
+    builderDeck.push({
+      id: card.id,
+      name: card.name,
+      count: 1,
+      type: cardType,
+      imageUrl: card.images.small || ''
+    });
+  }
+
+  renderBuilderDeck();
+}
+
+function changeCardQuantity(cardId, delta) {
+  const card = builderDeck.find(c => c.id === cardId);
+  if (!card) return;
+
+  if (delta > 0) {
+    // Check deck limit
+    if (getBuilderCardCount() >= 60) {
+      alert('Deck cannot have more than 60 cards!');
+      return;
+    }
+
+    // Check 4-card limit (except basic energy)
+    const dbCard = cardDatabase.getCardById(cardId);
+    const isBasicEnergy = dbCard && dbCard.supertype === 'Energy' &&
+      (!dbCard.subtypes || dbCard.subtypes.length === 0 || dbCard.subtypes.includes('Basic'));
+
+    if (!isBasicEnergy && card.count >= 4) {
+      alert('You can only have 4 copies of a card (except Basic Energy)!');
+      return;
+    }
+
+    card.count++;
+  } else {
+    card.count--;
+    if (card.count <= 0) {
+      builderDeck = builderDeck.filter(c => c.id !== cardId);
     }
   }
-  
-  if (newDeck.length > 0) {
-    gameState.deck = newDeck;
-    gameState.discard = [];
-    gameState.prizes = 6;
-    renderDeckList();
-    renderDiscardList();
-    updateStats();
-    return true;
+
+  renderBuilderDeck();
+}
+
+function clearBuilderDeck() {
+  if (builderDeck.length === 0 || confirm('Clear all cards from the deck?')) {
+    builderDeck = [];
+    renderBuilderDeck();
   }
-  
-  return false;
+}
+
+function saveDeck() {
+  if (builderDeck.length === 0) {
+    alert('Please add some cards to your deck first!');
+    return;
+  }
+
+  // Convert builder deck to game state format
+  gameState.deck = builderDeck.map(card => ({
+    id: card.id,
+    name: card.name,
+    count: card.count,
+    inDeck: card.count,
+    type: card.type,
+    imageUrl: card.imageUrl
+  }));
+
+  gameState.discard = [];
+  gameState.prizes = 6;
+
+  renderDeckList();
+  renderDiscardList();
+  updateStats();
+  closeDeckBuilder();
 }
 
 // Event Listeners
@@ -231,16 +406,16 @@ function setupEventListeners() {
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.dataset.tab;
-      
+
       tabBtns.forEach(b => b.classList.remove('active'));
       tabContents.forEach(c => c.classList.remove('active'));
-      
+
       btn.classList.add('active');
       document.getElementById(`${targetTab}-tab`).classList.add('active');
     });
   });
 
-  // Search
+  // Search in deck
   searchInput.addEventListener('input', (e) => {
     renderDeckList(e.target.value);
   });
@@ -250,7 +425,7 @@ function setupEventListeners() {
     if (e.target.classList.contains('card-btn')) {
       const action = e.target.dataset.action;
       const index = parseInt(e.target.dataset.index);
-      
+
       if (action === 'draw') {
         drawCard(index);
       } else if (action === 'discard') {
@@ -274,36 +449,76 @@ function setupEventListeners() {
     ipcRenderer.send('close');
   });
 
-  // Import modal
-  importBtn.addEventListener('click', () => {
-    importModal.classList.add('active');
+  // Open deck builder
+  importBtn.addEventListener('click', openDeckBuilder);
+
+  // ========== Deck Builder Events ==========
+
+  // Card search with debounce
+  cardSearchInput.addEventListener('input', (e) => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      searchCards(e.target.value);
+    }, 200);
   });
 
-  cancelImportBtn.addEventListener('click', () => {
-    importModal.classList.remove('active');
+  // Filter buttons
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter;
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Re-run search with new filter
+      if (cardSearchInput.value.length >= 2) {
+        searchCards(cardSearchInput.value);
+      }
+    });
   });
 
-  confirmImportBtn.addEventListener('click', () => {
-    const deckText = deckInput.value;
-    if (importDeck(deckText)) {
-      importModal.classList.remove('active');
-      deckInput.value = '';
-      alert('Deck imported successfully!');
-    } else {
-      alert('Failed to import deck. Please check the format.');
+  // Search results - add card (event delegation)
+  searchResults.addEventListener('click', (e) => {
+    if (e.target.classList.contains('add-card-btn')) {
+      const cardId = e.target.dataset.cardId;
+      addCardToDeck(cardId);
     }
   });
 
+  // Current deck - quantity controls (event delegation)
+  currentDeckList.addEventListener('click', (e) => {
+    if (e.target.classList.contains('qty-btn')) {
+      const cardId = e.target.dataset.id;
+      const action = e.target.dataset.action;
+      const delta = action === 'increase' ? 1 : -1;
+      changeCardQuantity(cardId, delta);
+    }
+  });
+
+  // Clear deck button
+  clearDeckBtn.addEventListener('click', clearBuilderDeck);
+
+  // Save deck button
+  saveDeckBtn.addEventListener('click', saveDeck);
+
+  // Cancel button
+  cancelDeckBtn.addEventListener('click', closeDeckBuilder);
 }
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  // Space: Quick draw
+  // Escape: Close modal
+  if (e.code === 'Escape') {
+    if (deckBuilderModal.classList.contains('active')) {
+      closeDeckBuilder();
+    }
+  }
+
+  // Space: Quick draw (when not typing)
   if (e.code === 'Space' && !e.target.matches('input, textarea')) {
     e.preventDefault();
     quickDraw();
   }
-  
+
   // R: Reset
   if (e.code === 'KeyR' && e.ctrlKey) {
     e.preventDefault();
