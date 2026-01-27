@@ -23,6 +23,11 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
 
+  // Set always on top with 'screen-saver' level to persist over fullscreen games
+  // This is necessary because the basic alwaysOnTop option doesn't work with
+  // exclusive fullscreen applications like Pokemon TCG Live
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+
   // Optional: Open DevTools for debugging
   // mainWindow.webContents.openDevTools();
 
@@ -40,6 +45,8 @@ app.whenReady().then(() => {
       isVisible = !isVisible;
       if (isVisible) {
         mainWindow.show();
+        // Re-apply screen-saver level to ensure it stays on top of fullscreen games
+        mainWindow.setAlwaysOnTop(true, 'screen-saver');
       } else {
         mainWindow.hide();
       }
