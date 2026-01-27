@@ -82,12 +82,16 @@ function renderDeckList(filter = '') {
       cardEl.classList.add('drawn');
     }
 
-    // Get large image URL from card database if available
+    // Get image URLs from card database if available
     const dbCard = cardDatabase.getCardById(card.id);
-    const largeImageUrl = dbCard?.images?.large || card.imageUrl || '';
+    const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
+    const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
 
     cardEl.innerHTML = `
-      <span class="card-name hoverable" data-image-url="${largeImageUrl}">${card.name}</span>
+      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+        <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="card-name">${card.name}</span>
+      </div>
       <span class="card-count">${card.inDeck}/${card.count}</span>
       <div class="card-controls">
         <button class="card-btn" data-action="draw" data-index="${index}" title="Draw">-</button>

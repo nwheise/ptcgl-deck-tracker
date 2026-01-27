@@ -231,20 +231,40 @@ body {
   opacity: 0.5;
 }
 
+.card-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-info.hoverable {
+  cursor: pointer;
+}
+
+.card-info.hoverable:hover .card-name {
+  color: #ffd700;
+  text-decoration: underline;
+}
+
+.card-thumbnail {
+  width: 28px;
+  height: 39px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .card-name {
   color: white;
   font-size: 13px;
   flex: 1;
-}
-
-.card-name.hoverable {
-  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.15s ease;
-}
-
-.card-name.hoverable:hover {
-  color: #ffd700;
-  text-decoration: underline;
 }
 
 .card-count {
