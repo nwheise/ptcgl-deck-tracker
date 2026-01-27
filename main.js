@@ -22,11 +22,9 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  
+
   // Optional: Open DevTools for debugging
   // mainWindow.webContents.openDevTools();
-
-  mainWindow.setIgnoreMouseEvents(false);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -45,13 +43,6 @@ app.whenReady().then(() => {
       } else {
         mainWindow.hide();
       }
-    }
-  });
-
-  // Register hotkey to toggle click-through (Ctrl+Shift+C)
-  globalShortcut.register('CommandOrControl+Shift+C', () => {
-    if (mainWindow) {
-      mainWindow.webContents.send('toggle-clickthrough');
     }
   });
 
@@ -74,25 +65,6 @@ app.on('will-quit', () => {
 });
 
 // IPC handlers for renderer process
-ipcMain.on('set-clickthrough', (event, enabled) => {
-  if (mainWindow) {
-    mainWindow.setIgnoreMouseEvents(enabled, { forward: true });
-  }
-});
-
-// Temporarily pause click-through when hovering over controls
-ipcMain.on('pause-clickthrough', () => {
-  if (mainWindow) {
-    mainWindow.setIgnoreMouseEvents(false);
-  }
-});
-
-ipcMain.on('resume-clickthrough', () => {
-  if (mainWindow) {
-    mainWindow.setIgnoreMouseEvents(true, { forward: true });
-  }
-});
-
 ipcMain.on('minimize', () => {
   if (mainWindow) {
     mainWindow.minimize();

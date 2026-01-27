@@ -4,8 +4,7 @@ const { ipcRenderer } = require('electron');
 let gameState = {
   deck: [],
   discard: [],
-  prizes: 6,
-  clickThrough: false
+  prizes: 6
 };
 
 // Sample deck for demo (will be replaced by user import)
@@ -39,7 +38,6 @@ const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 const drawBtn = document.getElementById('draw-btn');
 const resetBtn = document.getElementById('reset-btn');
-const clickthroughBtn = document.getElementById('clickthrough-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const importBtn = document.getElementById('import-btn');
@@ -47,7 +45,6 @@ const importModal = document.getElementById('import-modal');
 const confirmImportBtn = document.getElementById('confirm-import');
 const cancelImportBtn = document.getElementById('cancel-import');
 const deckInput = document.getElementById('deck-input');
-const controlsDiv = document.querySelector('.controls');
 
 // Initialize UI
 function init() {
@@ -268,15 +265,6 @@ function setupEventListeners() {
   // Reset button
   resetBtn.addEventListener('click', resetGame);
 
-  // Click-through toggle
-  clickthroughBtn.addEventListener('click', () => {
-    gameState.clickThrough = !gameState.clickThrough;
-    ipcRenderer.send('set-clickthrough', gameState.clickThrough);
-    clickthroughBtn.style.background = gameState.clickThrough 
-      ? 'rgba(255, 215, 0, 0.3)' 
-      : 'rgba(255, 255, 255, 0.2)';
-  });
-
   // Window controls
   minimizeBtn.addEventListener('click', () => {
     ipcRenderer.send('minimize');
@@ -284,19 +272,6 @@ function setupEventListeners() {
 
   closeBtn.addEventListener('click', () => {
     ipcRenderer.send('close');
-  });
-
-  // Keep controls clickable even when click-through is enabled
-  controlsDiv.addEventListener('mouseenter', () => {
-    if (gameState.clickThrough) {
-      ipcRenderer.send('pause-clickthrough');
-    }
-  });
-
-  controlsDiv.addEventListener('mouseleave', () => {
-    if (gameState.clickThrough) {
-      ipcRenderer.send('resume-clickthrough');
-    }
   });
 
   // Import modal
@@ -319,14 +294,6 @@ function setupEventListeners() {
     }
   });
 
-  // IPC listeners
-  ipcRenderer.on('toggle-clickthrough', () => {
-    gameState.clickThrough = !gameState.clickThrough;
-    ipcRenderer.send('set-clickthrough', gameState.clickThrough);
-    clickthroughBtn.style.background = gameState.clickThrough 
-      ? 'rgba(255, 215, 0, 0.3)' 
-      : 'rgba(255, 255, 255, 0.2)';
-  });
 }
 
 // Keyboard shortcuts
