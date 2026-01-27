@@ -68,6 +68,11 @@
     </div>
   </div>
 
+  <!-- Card Preview Tooltip -->
+  <div id="card-preview" class="card-preview">
+    <img id="card-preview-image" src="" alt="Card Preview" />
+  </div>
+
   <!-- Deck Builder Modal -->
   <div id="deck-builder-modal" class="modal">
     <div class="modal-content deck-builder">
@@ -86,6 +91,10 @@
           <button class="filter-btn" data-filter="Pokemon">Pokemon</button>
           <button class="filter-btn" data-filter="Trainer">Trainer</button>
           <button class="filter-btn" data-filter="Energy">Energy</button>
+          <label class="standard-toggle">
+            <input type="checkbox" id="standard-only-toggle" />
+            <span class="toggle-label">Standard Only</span>
+          </label>
         </div>
       </div>
 

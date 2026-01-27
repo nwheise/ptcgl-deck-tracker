@@ -14,6 +14,7 @@ let gameState = {
 // Deck Builder State
 let builderDeck = [];
 let currentFilter = 'all';
+let standardOnly = false;
 let searchDebounceTimer = null;
 
 // DOM Elements
@@ -41,6 +42,9 @@ const filterBtns = document.querySelectorAll('.filter-btn');
 const clearDeckBtn = document.getElementById('clear-deck-btn');
 const saveDeckBtn = document.getElementById('save-deck-btn');
 const cancelDeckBtn = document.getElementById('cancel-deck-btn');
+const standardOnlyToggle = document.getElementById('standard-only-toggle');
+const cardPreview = document.getElementById('card-preview');
+const cardPreviewImage = document.getElementById('card-preview-image');
 
 // Initialize UI
 function init() {
@@ -183,9 +187,11 @@ function openDeckBuilder() {
   }));
 
   currentFilter = 'all';
+  standardOnly = false;
   filterBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.filter === 'all');
   });
+  standardOnlyToggle.checked = false;
 
   cardSearchInput.value = '';
   searchResults.innerHTML = '<div class="search-placeholder">Type to search for cards...</div>';
@@ -263,7 +269,8 @@ function searchCards(query) {
 
   const results = cardDatabase.search(query, {
     limit: 30,
-    supertype: supertypeFilter
+    supertype: supertypeFilter,
+    standardOnly: standardOnly
   });
 
   if (results.length === 0) {
@@ -283,10 +290,10 @@ function searchCards(query) {
 
     cardEl.innerHTML = `
       <div class="result-card-info">
-        <img class="result-card-image" src="${card.images.small || ''}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'" />
+        <img class="result-card-image" src="${card.images.small || ''}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'" data-large-image="${card.images.large || card.images.small || ''}" />
         <div class="result-card-details">
           <div class="result-card-name">${card.name}</div>
-          <div class="result-card-meta">${displayType}${subtypeText} - ${card.set}</div>
+          <div class="result-card-meta">${displayType}${subtypeText} - ${card.setName}</div>
         </div>
       </div>
       <button class="add-card-btn" data-card-id="${card.id}">Add</button>
@@ -373,6 +380,29 @@ function clearBuilderDeck() {
     builderDeck = [];
     renderBuilderDeck();
   }
+}
+
+function updatePreviewPosition(e) {
+  const previewWidth = 266; // 250px image + 16px padding
+  const previewHeight = 370; // approximate height
+  const offset = 15; // distance from cursor
+
+  let x = e.clientX + offset;
+  let y = e.clientY + offset;
+
+  // Keep preview within viewport
+  if (x + previewWidth > window.innerWidth) {
+    x = e.clientX - previewWidth - offset;
+  }
+  if (y + previewHeight > window.innerHeight) {
+    y = window.innerHeight - previewHeight - 10;
+  }
+  if (y < 10) {
+    y = 10;
+  }
+
+  cardPreview.style.left = `${x}px`;
+  cardPreview.style.top = `${y}px`;
 }
 
 function saveDeck() {
@@ -476,11 +506,45 @@ function setupEventListeners() {
     });
   });
 
+  // Standard only toggle
+  standardOnlyToggle.addEventListener('change', (e) => {
+    standardOnly = e.target.checked;
+
+    // Re-run search with new filter
+    if (cardSearchInput.value.length >= 2) {
+      searchCards(cardSearchInput.value);
+    }
+  });
+
   // Search results - add card (event delegation)
   searchResults.addEventListener('click', (e) => {
     if (e.target.classList.contains('add-card-btn')) {
       const cardId = e.target.dataset.cardId;
       addCardToDeck(cardId);
+    }
+  });
+
+  // Card image hover preview
+  searchResults.addEventListener('mouseover', (e) => {
+    if (e.target.classList.contains('result-card-image')) {
+      const largeImageUrl = e.target.dataset.largeImage;
+      if (largeImageUrl) {
+        cardPreviewImage.src = largeImageUrl;
+        cardPreview.classList.add('visible');
+        updatePreviewPosition(e);
+      }
+    }
+  });
+
+  searchResults.addEventListener('mouseout', (e) => {
+    if (e.target.classList.contains('result-card-image')) {
+      cardPreview.classList.remove('visible');
+    }
+  });
+
+  searchResults.addEventListener('mousemove', (e) => {
+    if (e.target.classList.contains('result-card-image') && cardPreview.classList.contains('visible')) {
+      updatePreviewPosition(e);
     }
   });
 

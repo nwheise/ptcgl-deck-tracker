@@ -5,11 +5,15 @@ class CardDatabase {
   constructor() {
     this.cards = [];
     this.cardIndex = new Map();
+    this.setIndex = new Map(); // Map from set ID to set info
     this.loaded = false;
   }
 
   load() {
     if (this.loaded) return;
+
+    // Load set data first
+    this.loadSets();
 
     const cardsDir = path.join(__dirname, 'pokemon-tcg-data', 'cards', 'en');
 
@@ -27,6 +31,7 @@ class CardDatabase {
         const setId = setFile.replace('.json', '');
 
         for (const card of setData) {
+          const setInfo = this.setIndex.get(setId);
           const cardEntry = {
             id: card.id,
             name: card.name,
@@ -35,6 +40,7 @@ class CardDatabase {
             hp: card.hp,
             types: card.types || [],
             set: setId,
+            setName: setInfo ? setInfo.name : setId,
             number: card.number,
             rarity: card.rarity,
             images: card.images || {},
@@ -57,6 +63,42 @@ class CardDatabase {
 
     this.loaded = true;
     console.log(`Loaded ${this.cards.length} cards from ${setFiles.length} sets`);
+  }
+
+  loadSets() {
+    const setsPath = path.join(__dirname, 'pokemon-tcg-data', 'sets', 'en.json');
+
+    if (!fs.existsSync(setsPath)) {
+      console.error('Sets file not found:', setsPath);
+      return;
+    }
+
+    try {
+      const setsData = JSON.parse(fs.readFileSync(setsPath, 'utf8'));
+
+      for (const set of setsData) {
+        this.setIndex.set(set.id, {
+          id: set.id,
+          name: set.name,
+          series: set.series,
+          legalities: set.legalities || {},
+          releaseDate: set.releaseDate
+        });
+      }
+
+      console.log(`Loaded ${this.setIndex.size} sets`);
+    } catch (err) {
+      console.error('Error loading sets:', err.message);
+    }
+  }
+
+  getSetName(setId) {
+    const set = this.setIndex.get(setId);
+    return set ? set.name : setId;
+  }
+
+  getSetInfo(setId) {
+    return this.setIndex.get(setId);
   }
 
   search(query, options = {}) {
