@@ -65,6 +65,26 @@
     <!-- Import Deck Section -->
     <div class="import-section">
       <button id="import-btn" class="action-btn secondary">Build Deck</button>
+      <button id="import-text-btn" class="action-btn secondary">Import Deck</button>
+    </div>
+  </div>
+
+  <!-- Import Deck Modal -->
+  <div id="import-deck-modal" class="modal">
+    <div class="modal-content import-deck">
+      <div class="import-deck-header">
+        <h3>Import Deck</h3>
+      </div>
+      <p class="import-instructions">Paste your deck list exported from Pokemon TCG Live:</p>
+      <textarea id="deck-import-text" placeholder="Pokémon: 6
+1 Togekiss SSP 72
+4 Gholdengo ex PAR 139
+..."></textarea>
+      <div id="import-error" class="import-error"></div>
+      <div class="modal-buttons">
+        <button id="import-deck-btn" class="action-btn">Import</button>
+        <button id="cancel-import-btn" class="action-btn secondary">Cancel</button>
+      </div>
     </div>
   </div>
 

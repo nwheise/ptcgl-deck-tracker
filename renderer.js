@@ -46,6 +46,14 @@ const standardOnlyToggle = document.getElementById('standard-only-toggle');
 const cardPreview = document.getElementById('card-preview');
 const cardPreviewImage = document.getElementById('card-preview-image');
 
+// Import Deck Modal DOM Elements
+const importTextBtn = document.getElementById('import-text-btn');
+const importDeckModal = document.getElementById('import-deck-modal');
+const deckImportText = document.getElementById('deck-import-text');
+const importError = document.getElementById('import-error');
+const importDeckBtn = document.getElementById('import-deck-btn');
+const cancelImportBtn = document.getElementById('cancel-import-btn');
+
 // Initialize UI
 function init() {
   renderDeckList();
@@ -430,6 +438,136 @@ function saveDeck() {
   closeDeckBuilder();
 }
 
+// ========== Import Deck Functions ==========
+
+function openImportDeck() {
+  deckImportText.value = '';
+  importError.textContent = '';
+  importError.classList.remove('visible');
+  importDeckModal.classList.add('active');
+  deckImportText.focus();
+}
+
+function closeImportDeck() {
+  importDeckModal.classList.remove('active');
+}
+
+function showImportError(message) {
+  importError.textContent = message;
+  importError.classList.add('visible');
+}
+
+function parseDeckText(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const cards = [];
+  const errors = [];
+
+  for (const line of lines) {
+    // Skip section headers (e.g., "Pokémon: 6", "Trainer: 14", "Energy: 8")
+    if (/^(Pokémon|Pokemon|Trainer|Energy):\s*\d+$/i.test(line)) {
+      continue;
+    }
+
+    // Skip "Total Cards: N" line
+    if (/^Total Cards:\s*\d+$/i.test(line)) {
+      continue;
+    }
+
+    // Parse card line: "count name set number"
+    // Examples:
+    //   "4 Gholdengo ex PAR 139"
+    //   "1 Basic {L} Energy SVE 12"
+    //   "2 Boss's Orders PAL 172"
+    const match = line.match(/^(\d+)\s+(.+?)\s+([A-Z0-9-]+)\s+(\d+)$/i);
+    if (!match) {
+      // Could be an empty line or invalid format, skip silently
+      if (line.length > 0 && !/^\s*$/.test(line)) {
+        errors.push(`Could not parse: "${line}"`);
+      }
+      continue;
+    }
+
+    const count = parseInt(match[1], 10);
+    const cardName = match[2].trim();
+    const setCode = match[3].toUpperCase();
+    const cardNumber = match[4];
+
+    // Look up the card in the database
+    const card = cardDatabase.getCardByPtcglCode(setCode, cardNumber);
+
+    if (!card) {
+      errors.push(`Card not found: ${cardName} (${setCode} ${cardNumber})`);
+      continue;
+    }
+
+    // Determine card type
+    const cardType = card.supertype === 'Pokémon' ? 'Pokemon' : card.supertype;
+
+    // Check if card already exists in our parsed list
+    const existingCard = cards.find(c => c.id === card.id);
+    if (existingCard) {
+      existingCard.count += count;
+    } else {
+      cards.push({
+        id: card.id,
+        name: card.name,
+        count: count,
+        type: cardType,
+        imageUrl: card.images.small || ''
+      });
+    }
+  }
+
+  return { cards, errors };
+}
+
+function importDeck() {
+  const text = deckImportText.value.trim();
+
+  if (!text) {
+    showImportError('Please paste a deck list');
+    return;
+  }
+
+  const { cards, errors } = parseDeckText(text);
+
+  if (cards.length === 0) {
+    showImportError('No valid cards found. Make sure you paste a deck exported from Pokemon TCG Live.');
+    return;
+  }
+
+  // Show warnings for cards that couldn't be found
+  if (errors.length > 0) {
+    const proceed = confirm(
+      `Warning: ${errors.length} card(s) could not be found:\n\n` +
+      errors.slice(0, 5).join('\n') +
+      (errors.length > 5 ? `\n...and ${errors.length - 5} more` : '') +
+      '\n\nImport the remaining cards anyway?'
+    );
+    if (!proceed) {
+      return;
+    }
+  }
+
+  // Convert to game state format
+  gameState.deck = cards.map(card => ({
+    id: card.id,
+    name: card.name,
+    count: card.count,
+    inDeck: card.count,
+    type: card.type,
+    imageUrl: card.imageUrl
+  }));
+
+  gameState.discard = [];
+  gameState.prizes = 6;
+
+  renderDeckList();
+  renderDiscardList();
+  updateStats();
+  closeImportDeck();
+}
+
 // Event Listeners
 function setupEventListeners() {
   // Tab switching
@@ -566,6 +704,17 @@ function setupEventListeners() {
 
   // Cancel button
   cancelDeckBtn.addEventListener('click', closeDeckBuilder);
+
+  // ========== Import Deck Events ==========
+
+  // Open import deck modal
+  importTextBtn.addEventListener('click', openImportDeck);
+
+  // Import deck button
+  importDeckBtn.addEventListener('click', importDeck);
+
+  // Cancel import button
+  cancelImportBtn.addEventListener('click', closeImportDeck);
 }
 
 // Keyboard shortcuts
@@ -574,6 +723,9 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     if (deckBuilderModal.classList.contains('active')) {
       closeDeckBuilder();
+    }
+    if (importDeckModal.classList.contains('active')) {
+      closeImportDeck();
     }
   }
 

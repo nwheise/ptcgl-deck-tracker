@@ -6,6 +6,8 @@ class CardDatabase {
     this.cards = [];
     this.cardIndex = new Map();
     this.setIndex = new Map(); // Map from set ID to set info
+    this.ptcgoCodeIndex = new Map(); // Map from PTCGL/PTCGO code to set ID
+    this.cardBySetNumber = new Map(); // Map from "setId-number" to card
     this.loaded = false;
   }
 
@@ -55,6 +57,10 @@ class CardDatabase {
             this.cardIndex.set(nameLower, []);
           }
           this.cardIndex.get(nameLower).push(cardEntry);
+
+          // Index by set-number for deck import
+          const setNumberKey = `${setId}-${card.number}`;
+          this.cardBySetNumber.set(setNumberKey, cardEntry);
         }
       } catch (err) {
         console.error(`Error loading ${setFile}:`, err.message);
@@ -84,6 +90,11 @@ class CardDatabase {
           legalities: set.legalities || {},
           releaseDate: set.releaseDate
         });
+
+        // Build reverse mapping from PTCGO/PTCGL code to set ID
+        if (set.ptcgoCode) {
+          this.ptcgoCodeIndex.set(set.ptcgoCode.toUpperCase(), set.id);
+        }
       }
 
       console.log(`Loaded ${this.setIndex.size} sets`);
@@ -156,6 +167,17 @@ class CardDatabase {
   getCardsByName(name) {
     const nameLower = name.toLowerCase();
     return this.cardIndex.get(nameLower) || [];
+  }
+
+  // Get card by PTCGL set code and card number (e.g., "PAR", "139")
+  getCardByPtcglCode(ptcglSetCode, cardNumber) {
+    const setId = this.ptcgoCodeIndex.get(ptcglSetCode.toUpperCase());
+    if (!setId) {
+      console.warn(`Unknown PTCGL set code: ${ptcglSetCode}`);
+      return null;
+    }
+    const key = `${setId}-${cardNumber}`;
+    return this.cardBySetNumber.get(key) || null;
   }
 
   getUniqueCardNames(query, limit = 20) {
