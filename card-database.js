@@ -5,11 +5,17 @@ class CardDatabase {
   constructor() {
     this.cards = [];
     this.cardIndex = new Map();
+    this.setIndex = new Map(); // Map from set ID to set info
+    this.ptcgoCodeIndex = new Map(); // Map from PTCGL/PTCGO code to set ID
+    this.cardBySetNumber = new Map(); // Map from "setId-number" to card
     this.loaded = false;
   }
 
   load() {
     if (this.loaded) return;
+
+    // Load set data first
+    this.loadSets();
 
     const cardsDir = path.join(__dirname, 'pokemon-tcg-data', 'cards', 'en');
 
@@ -27,6 +33,7 @@ class CardDatabase {
         const setId = setFile.replace('.json', '');
 
         for (const card of setData) {
+          const setInfo = this.setIndex.get(setId);
           const cardEntry = {
             id: card.id,
             name: card.name,
@@ -35,6 +42,7 @@ class CardDatabase {
             hp: card.hp,
             types: card.types || [],
             set: setId,
+            setName: setInfo ? setInfo.name : setId,
             number: card.number,
             rarity: card.rarity,
             images: card.images || {},
@@ -49,6 +57,10 @@ class CardDatabase {
             this.cardIndex.set(nameLower, []);
           }
           this.cardIndex.get(nameLower).push(cardEntry);
+
+          // Index by set-number for deck import
+          const setNumberKey = `${setId}-${card.number}`;
+          this.cardBySetNumber.set(setNumberKey, cardEntry);
         }
       } catch (err) {
         console.error(`Error loading ${setFile}:`, err.message);
@@ -57,6 +69,47 @@ class CardDatabase {
 
     this.loaded = true;
     console.log(`Loaded ${this.cards.length} cards from ${setFiles.length} sets`);
+  }
+
+  loadSets() {
+    const setsPath = path.join(__dirname, 'pokemon-tcg-data', 'sets', 'en.json');
+
+    if (!fs.existsSync(setsPath)) {
+      console.error('Sets file not found:', setsPath);
+      return;
+    }
+
+    try {
+      const setsData = JSON.parse(fs.readFileSync(setsPath, 'utf8'));
+
+      for (const set of setsData) {
+        this.setIndex.set(set.id, {
+          id: set.id,
+          name: set.name,
+          series: set.series,
+          legalities: set.legalities || {},
+          releaseDate: set.releaseDate
+        });
+
+        // Build reverse mapping from PTCGO/PTCGL code to set ID
+        if (set.ptcgoCode) {
+          this.ptcgoCodeIndex.set(set.ptcgoCode.toUpperCase(), set.id);
+        }
+      }
+
+      console.log(`Loaded ${this.setIndex.size} sets`);
+    } catch (err) {
+      console.error('Error loading sets:', err.message);
+    }
+  }
+
+  getSetName(setId) {
+    const set = this.setIndex.get(setId);
+    return set ? set.name : setId;
+  }
+
+  getSetInfo(setId) {
+    return this.setIndex.get(setId);
   }
 
   search(query, options = {}) {
@@ -114,6 +167,17 @@ class CardDatabase {
   getCardsByName(name) {
     const nameLower = name.toLowerCase();
     return this.cardIndex.get(nameLower) || [];
+  }
+
+  // Get card by PTCGL set code and card number (e.g., "PAR", "139")
+  getCardByPtcglCode(ptcglSetCode, cardNumber) {
+    const setId = this.ptcgoCodeIndex.get(ptcglSetCode.toUpperCase());
+    if (!setId) {
+      console.warn(`Unknown PTCGL set code: ${ptcglSetCode}`);
+      return null;
+    }
+    const key = `${setId}-${cardNumber}`;
+    return this.cardBySetNumber.get(key) || null;
   }
 
   getUniqueCardNames(query, limit = 20) {

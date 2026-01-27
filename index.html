@@ -65,7 +65,32 @@
     <!-- Import Deck Section -->
     <div class="import-section">
       <button id="import-btn" class="action-btn secondary">Build Deck</button>
+      <button id="import-text-btn" class="action-btn secondary">Import Deck</button>
     </div>
+  </div>
+
+  <!-- Import Deck Modal -->
+  <div id="import-deck-modal" class="modal">
+    <div class="modal-content import-deck">
+      <div class="import-deck-header">
+        <h3>Import Deck</h3>
+      </div>
+      <p class="import-instructions">Paste your deck list exported from Pokemon TCG Live:</p>
+      <textarea id="deck-import-text" placeholder="Pokémon: 6
+1 Togekiss SSP 72
+4 Gholdengo ex PAR 139
+..."></textarea>
+      <div id="import-error" class="import-error"></div>
+      <div class="modal-buttons">
+        <button id="import-deck-btn" class="action-btn">Import</button>
+        <button id="cancel-import-btn" class="action-btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Preview Tooltip -->
+  <div id="card-preview" class="card-preview">
+    <img id="card-preview-image" src="" alt="Card Preview" />
   </div>
 
   <!-- Deck Builder Modal -->
@@ -86,6 +111,10 @@
           <button class="filter-btn" data-filter="Pokemon">Pokemon</button>
           <button class="filter-btn" data-filter="Trainer">Trainer</button>
           <button class="filter-btn" data-filter="Energy">Energy</button>
+          <label class="standard-toggle">
+            <input type="checkbox" id="standard-only-toggle" />
+            <span class="toggle-label">Standard Only</span>
+          </label>
         </div>
       </div>
 
