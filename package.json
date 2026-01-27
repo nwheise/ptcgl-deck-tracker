@@ -5,10 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev",
-    "sync-cards": "node scripts/sync-cards.js",
-    "sync-cards:all": "node scripts/sync-cards.js --all",
-    "sync-cards:standard": "node scripts/sync-cards.js --standard"
+    "dev": "electron . --dev"
   },
   "keywords": [
     "pokemon",
@@ -20,8 +17,5 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^35.7.5"
-  },
-  "dependencies": {
-    "pokemontcgsdk": "^2.0.0"
   }
 }
