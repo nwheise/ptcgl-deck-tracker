@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 .claude/
+
+# Card data (synced locally via npm run sync-cards)
+data/
