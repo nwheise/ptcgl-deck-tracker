@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon TCG Deck Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header with controls -->
+    <div class="header">
+      <div class="title">
+        <span class="pokeball">⚪</span>
+        <span>Deck Tracker</span>
+      </div>
+      <div class="controls">
+        <button id="clickthrough-btn" class="control-btn" title="Toggle Click-through (Ctrl+Shift+C)">🖱️</button>
+        <button id="minimize-btn" class="control-btn" title="Minimize">−</button>
+        <button id="close-btn" class="control-btn" title="Close">×</button>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">Deck:</span>
+        <span id="deck-count" class="stat-value">60</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Discard:</span>
+        <span id="discard-count" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Prizes:</span>
+        <span id="prize-count" class="stat-value">6</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button id="draw-btn" class="action-btn">Draw Card</button>
+      <button id="reset-btn" class="action-btn secondary">Reset Game</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search cards..." />
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="deck">Deck List</button>
+      <button class="tab-btn" data-tab="discard">Discard Pile</button>
+    </div>
+
+    <!-- Card Lists -->
+    <div class="tab-content active" id="deck-tab">
+      <div id="deck-list" class="card-list"></div>
+    </div>
+
+    <div class="tab-content" id="discard-tab">
+      <div id="discard-list" class="card-list"></div>
+    </div>
+
+    <!-- Import Deck Section -->
+    <div class="import-section">
+      <button id="import-btn" class="action-btn secondary">Import Deck</button>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div id="import-modal" class="modal">
+    <div class="modal-content">
+      <h3>Import Deck List</h3>
+      <textarea id="deck-input" placeholder="Paste your deck list here (format: 4 Pikachu ex, 3 Charizard, etc.)"></textarea>
+      <div class="modal-buttons">
+        <button id="confirm-import" class="action-btn">Import</button>
+        <button id="cancel-import" class="action-btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
