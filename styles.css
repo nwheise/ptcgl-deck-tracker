@@ -237,6 +237,16 @@ body {
   flex: 1;
 }
 
+.card-name.hoverable {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.card-name.hoverable:hover {
+  color: #ffd700;
+  text-decoration: underline;
+}
+
 .card-count {
   background: rgba(59, 130, 246, 0.3);
   color: #60a5fa;

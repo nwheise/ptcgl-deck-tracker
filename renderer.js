@@ -82,8 +82,12 @@ function renderDeckList(filter = '') {
       cardEl.classList.add('drawn');
     }
 
+    // Get large image URL from card database if available
+    const dbCard = cardDatabase.getCardById(card.id);
+    const largeImageUrl = dbCard?.images?.large || card.imageUrl || '';
+
     cardEl.innerHTML = `
-      <span class="card-name">${card.name}</span>
+      <span class="card-name hoverable" data-image-url="${largeImageUrl}">${card.name}</span>
       <span class="card-count">${card.inDeck}/${card.count}</span>
       <div class="card-controls">
         <button class="card-btn" data-action="draw" data-index="${index}" title="Draw">-</button>
@@ -599,6 +603,30 @@ function setupEventListeners() {
       } else if (action === 'discard') {
         discardCard(index);
       }
+    }
+  });
+
+  // Deck list hover preview
+  deckList.addEventListener('mouseover', (e) => {
+    if (e.target.classList.contains('hoverable')) {
+      const imageUrl = e.target.dataset.imageUrl;
+      if (imageUrl) {
+        cardPreviewImage.src = imageUrl;
+        cardPreview.classList.add('visible');
+        updatePreviewPosition(e);
+      }
+    }
+  });
+
+  deckList.addEventListener('mouseout', (e) => {
+    if (e.target.classList.contains('hoverable')) {
+      cardPreview.classList.remove('visible');
+    }
+  });
+
+  deckList.addEventListener('mousemove', (e) => {
+    if (e.target.classList.contains('hoverable') && cardPreview.classList.contains('visible')) {
+      updatePreviewPosition(e);
     }
   });
 
