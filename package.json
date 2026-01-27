@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "sync-cards": "node scripts/sync-cards.js",
+    "sync-cards:all": "node scripts/sync-cards.js --all",
+    "sync-cards:standard": "node scripts/sync-cards.js --standard"
   },
   "keywords": [
     "pokemon",
