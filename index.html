@@ -27,6 +27,10 @@
         <span id="deck-count" class="stat-value">60</span>
       </div>
       <div class="stat-item">
+        <span class="stat-label">Hand:</span>
+        <span id="hand-count" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
         <span class="stat-label">Discard:</span>
         <span id="discard-count" class="stat-value">0</span>
       </div>
@@ -49,13 +53,18 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab-btn active" data-tab="deck">Deck List</button>
-      <button class="tab-btn" data-tab="discard">Discard Pile</button>
+      <button class="tab-btn active" data-tab="deck">Deck</button>
+      <button class="tab-btn" data-tab="hand">Hand</button>
+      <button class="tab-btn" data-tab="discard">Discard</button>
     </div>
 
     <!-- Card Lists -->
     <div class="tab-content active" id="deck-tab">
       <div id="deck-list" class="card-list"></div>
+    </div>
+
+    <div class="tab-content" id="hand-tab">
+      <div id="hand-list" class="card-list"></div>
     </div>
 
     <div class="tab-content" id="discard-tab">
