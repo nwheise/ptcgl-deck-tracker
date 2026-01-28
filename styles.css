@@ -312,6 +312,15 @@ body {
   background: rgba(220, 38, 38, 0.5);
 }
 
+.card-btn.move-btn {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.card-btn.move-btn:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
 /* Import Section */
 .import-section {
   -webkit-app-region: no-drag;

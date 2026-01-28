@@ -7,6 +7,7 @@ cardDatabase.load();
 // Game State
 let gameState = {
   deck: [],
+  hand: [],
   discard: [],
   prizes: 6
 };
@@ -19,8 +20,10 @@ let searchDebounceTimer = null;
 
 // DOM Elements
 const deckList = document.getElementById('deck-list');
+const handList = document.getElementById('hand-list');
 const discardList = document.getElementById('discard-list');
 const deckCountEl = document.getElementById('deck-count');
+const handCountEl = document.getElementById('hand-count');
 const discardCountEl = document.getElementById('discard-count');
 const prizeCountEl = document.getElementById('prize-count');
 const searchInput = document.getElementById('search-input');
@@ -57,12 +60,13 @@ const cancelImportBtn = document.getElementById('cancel-import-btn');
 // Initialize UI
 function init() {
   renderDeckList();
+  renderHandList();
   renderDiscardList();
   updateStats();
   setupEventListeners();
 }
 
-// Render deck list
+// Render deck list organized by card type
 function renderDeckList(filter = '') {
   deckList.innerHTML = '';
 
@@ -75,7 +79,13 @@ function renderDeckList(filter = '') {
     return;
   }
 
-  filteredDeck.forEach((card, index) => {
+  // Group cards by type
+  const pokemon = filteredDeck.filter(c => c.type === 'Pokemon');
+  const trainers = filteredDeck.filter(c => c.type === 'Trainer');
+  const energy = filteredDeck.filter(c => c.type === 'Energy');
+
+  const renderCardItem = (card) => {
+    const index = gameState.deck.indexOf(card);
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
     if (card.inDeck === 0) {
@@ -94,12 +104,77 @@ function renderDeckList(filter = '') {
       </div>
       <span class="card-count">${card.inDeck}/${card.count}</span>
       <div class="card-controls">
-        <button class="card-btn" data-action="draw" data-index="${index}" title="Draw">-</button>
+        <button class="card-btn" data-action="draw" data-index="${index}" title="Add to Hand">-</button>
         <button class="card-btn discard" data-action="discard" data-index="${index}" title="Discard">🗑️</button>
       </div>
     `;
 
-    deckList.appendChild(cardEl);
+    return cardEl;
+  };
+
+  const renderGroup = (cards, label) => {
+    if (cards.length === 0) return;
+
+    const groupEl = document.createElement('div');
+    groupEl.className = 'deck-group';
+
+    const groupCount = cards.reduce((sum, c) => sum + c.inDeck, 0);
+    const totalCount = cards.reduce((sum, c) => sum + c.count, 0);
+    groupEl.innerHTML = `<div class="deck-group-header">${label} (${groupCount}/${totalCount})</div>`;
+
+    cards.forEach(card => {
+      groupEl.appendChild(renderCardItem(card));
+    });
+
+    deckList.appendChild(groupEl);
+  };
+
+  renderGroup(pokemon, 'Pokemon');
+  renderGroup(trainers, 'Trainer');
+  renderGroup(energy, 'Energy');
+}
+
+// Render hand list
+function renderHandList() {
+  handList.innerHTML = '';
+
+  if (gameState.hand.length === 0) {
+    handList.innerHTML = '<div class="empty-state">Hand is empty</div>';
+    return;
+  }
+
+  // Group hand cards by name
+  const handMap = {};
+  gameState.hand.forEach((card, idx) => {
+    if (!handMap[card.name]) {
+      handMap[card.name] = { ...card, handCount: 0, indices: [] };
+    }
+    handMap[card.name].handCount++;
+    handMap[card.name].indices.push(idx);
+  });
+
+  Object.values(handMap).forEach(card => {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'card-item';
+
+    // Get image URLs from card database if available
+    const dbCard = cardDatabase.getCardById(card.id);
+    const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
+    const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+
+    cardEl.innerHTML = `
+      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+        <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="card-name">${card.name}</span>
+      </div>
+      <span class="card-count">${card.handCount}</span>
+      <div class="card-controls">
+        <button class="card-btn move-btn" data-action="hand-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
+        <button class="card-btn discard" data-action="hand-to-discard" data-name="${card.name}" title="Discard">🗑️</button>
+      </div>
+    `;
+
+    handList.appendChild(cardEl);
   });
 }
 
@@ -114,20 +189,33 @@ function renderDiscardList() {
 
   // Group discarded cards by name
   const discardMap = {};
-  gameState.discard.forEach(card => {
+  gameState.discard.forEach((card, idx) => {
     if (!discardMap[card.name]) {
-      discardMap[card.name] = { ...card, discardCount: 0 };
+      discardMap[card.name] = { ...card, discardCount: 0, indices: [] };
     }
     discardMap[card.name].discardCount++;
+    discardMap[card.name].indices.push(idx);
   });
 
   Object.values(discardMap).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
 
+    // Get image URLs from card database if available
+    const dbCard = cardDatabase.getCardById(card.id);
+    const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
+    const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+
     cardEl.innerHTML = `
-      <span class="card-name">${card.name}</span>
+      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+        <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="card-name">${card.name}</span>
+      </div>
       <span class="card-count">${card.discardCount}</span>
+      <div class="card-controls">
+        <button class="card-btn move-btn" data-action="discard-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
+        <button class="card-btn move-btn" data-action="discard-to-hand" data-name="${card.name}" title="Add to Hand">✋</button>
+      </div>
     `;
 
     discardList.appendChild(cardEl);
@@ -138,21 +226,24 @@ function renderDiscardList() {
 function updateStats() {
   const totalInDeck = gameState.deck.reduce((sum, card) => sum + card.inDeck, 0);
   deckCountEl.textContent = totalInDeck;
+  handCountEl.textContent = gameState.hand.length;
   discardCountEl.textContent = gameState.discard.length;
   prizeCountEl.textContent = gameState.prizes;
 }
 
-// Draw a card from deck
+// Draw a card from deck to hand
 function drawCard(cardIndex) {
   const card = gameState.deck[cardIndex];
   if (card.inDeck > 0) {
     card.inDeck--;
+    gameState.hand.push({ ...card });
     renderDeckList(searchInput.value);
+    renderHandList();
     updateStats();
   }
 }
 
-// Discard a card
+// Discard a card from deck
 function discardCard(cardIndex) {
   const card = gameState.deck[cardIndex];
   if (card.inDeck > 0) {
@@ -164,14 +255,81 @@ function discardCard(cardIndex) {
   }
 }
 
-// Quick draw (draws from first available card)
+// Quick draw (draws from first available card to hand)
 function quickDraw() {
   const availableCard = gameState.deck.find(card => card.inDeck > 0);
   if (availableCard) {
     availableCard.inDeck--;
+    gameState.hand.push({ ...availableCard });
     renderDeckList(searchInput.value);
+    renderHandList();
     updateStats();
   }
+}
+
+// Move card from hand to deck
+function moveHandToDeck(cardName) {
+  const handIndex = gameState.hand.findIndex(c => c.name === cardName);
+  if (handIndex === -1) return;
+
+  const card = gameState.hand[handIndex];
+  gameState.hand.splice(handIndex, 1);
+
+  // Find the deck card and increment its inDeck count
+  const deckCard = gameState.deck.find(c => c.name === cardName);
+  if (deckCard) {
+    deckCard.inDeck++;
+  }
+
+  renderDeckList(searchInput.value);
+  renderHandList();
+  updateStats();
+}
+
+// Move card from hand to discard
+function moveHandToDiscard(cardName) {
+  const handIndex = gameState.hand.findIndex(c => c.name === cardName);
+  if (handIndex === -1) return;
+
+  const card = gameState.hand[handIndex];
+  gameState.hand.splice(handIndex, 1);
+  gameState.discard.push({ ...card });
+
+  renderHandList();
+  renderDiscardList();
+  updateStats();
+}
+
+// Move card from discard to deck
+function moveDiscardToDeck(cardName) {
+  const discardIndex = gameState.discard.findIndex(c => c.name === cardName);
+  if (discardIndex === -1) return;
+
+  gameState.discard.splice(discardIndex, 1);
+
+  // Find the deck card and increment its inDeck count
+  const deckCard = gameState.deck.find(c => c.name === cardName);
+  if (deckCard) {
+    deckCard.inDeck++;
+  }
+
+  renderDeckList(searchInput.value);
+  renderDiscardList();
+  updateStats();
+}
+
+// Move card from discard to hand
+function moveDiscardToHand(cardName) {
+  const discardIndex = gameState.discard.findIndex(c => c.name === cardName);
+  if (discardIndex === -1) return;
+
+  const card = gameState.discard[discardIndex];
+  gameState.discard.splice(discardIndex, 1);
+  gameState.hand.push({ ...card });
+
+  renderHandList();
+  renderDiscardList();
+  updateStats();
 }
 
 // Reset game
@@ -181,10 +339,12 @@ function resetGame() {
     gameState.deck.forEach(card => {
       card.inDeck = card.count;
     });
+    gameState.hand = [];
     gameState.discard = [];
     gameState.prizes = 6;
 
     renderDeckList(searchInput.value);
+    renderHandList();
     renderDiscardList();
     updateStats();
   }
@@ -437,10 +597,12 @@ function saveDeck() {
     imageUrl: card.imageUrl
   }));
 
+  gameState.hand = [];
   gameState.discard = [];
   gameState.prizes = 6;
 
   renderDeckList();
+  renderHandList();
   renderDiscardList();
   updateStats();
   closeDeckBuilder();
@@ -567,10 +729,12 @@ function importDeck() {
     imageUrl: card.imageUrl
   }));
 
+  gameState.hand = [];
   gameState.discard = [];
   gameState.prizes = 6;
 
   renderDeckList();
+  renderHandList();
   renderDiscardList();
   updateStats();
   closeImportDeck();
@@ -630,6 +794,88 @@ function setupEventListeners() {
 
   deckList.addEventListener('mousemove', (e) => {
     if (e.target.classList.contains('hoverable') && cardPreview.classList.contains('visible')) {
+      updatePreviewPosition(e);
+    }
+  });
+
+  // Hand list controls (event delegation)
+  handList.addEventListener('click', (e) => {
+    if (e.target.classList.contains('card-btn')) {
+      const action = e.target.dataset.action;
+      const cardName = e.target.dataset.name;
+
+      if (action === 'hand-to-deck') {
+        moveHandToDeck(cardName);
+      } else if (action === 'hand-to-discard') {
+        moveHandToDiscard(cardName);
+      }
+    }
+  });
+
+  // Hand list hover preview
+  handList.addEventListener('mouseover', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable) {
+      const imageUrl = hoverable.dataset.imageUrl;
+      if (imageUrl) {
+        cardPreviewImage.src = imageUrl;
+        cardPreview.classList.add('visible');
+        updatePreviewPosition(e);
+      }
+    }
+  });
+
+  handList.addEventListener('mouseout', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable) {
+      cardPreview.classList.remove('visible');
+    }
+  });
+
+  handList.addEventListener('mousemove', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable && cardPreview.classList.contains('visible')) {
+      updatePreviewPosition(e);
+    }
+  });
+
+  // Discard list controls (event delegation)
+  discardList.addEventListener('click', (e) => {
+    if (e.target.classList.contains('card-btn')) {
+      const action = e.target.dataset.action;
+      const cardName = e.target.dataset.name;
+
+      if (action === 'discard-to-deck') {
+        moveDiscardToDeck(cardName);
+      } else if (action === 'discard-to-hand') {
+        moveDiscardToHand(cardName);
+      }
+    }
+  });
+
+  // Discard list hover preview
+  discardList.addEventListener('mouseover', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable) {
+      const imageUrl = hoverable.dataset.imageUrl;
+      if (imageUrl) {
+        cardPreviewImage.src = imageUrl;
+        cardPreview.classList.add('visible');
+        updatePreviewPosition(e);
+      }
+    }
+  });
+
+  discardList.addEventListener('mouseout', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable) {
+      cardPreview.classList.remove('visible');
+    }
+  });
+
+  discardList.addEventListener('mousemove', (e) => {
+    const hoverable = e.target.closest('.hoverable');
+    if (hoverable && cardPreview.classList.contains('visible')) {
       updatePreviewPosition(e);
     }
   });
