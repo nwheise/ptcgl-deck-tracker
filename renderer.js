@@ -840,151 +840,175 @@ function setupEventListeners() {
   setupCardHover(handList);
   setupCardHover(discardList);
 
-  // ========== Drag and Drop ==========
-  let draggedCard = null;
-  let dragSource = null;
+  // ========== Custom Drag and Drop (mouse-based for transparent windows) ==========
+  let dragState = null;
+  let dragClone = null;
 
-  // Drag start handler
-  const handleDragStart = (e) => {
-    // Find the card-item element (could be target itself or a parent)
-    const cardItem = e.target.closest('.card-item');
-    if (!cardItem || !cardItem.draggable) return;
-
-    draggedCard = {
-      name: cardItem.dataset.cardName,
-      source: cardItem.dataset.source,
-      index: cardItem.dataset.cardIndex ? parseInt(cardItem.dataset.cardIndex) : null
-    };
-    dragSource = cardItem.dataset.source;
-
-    cardItem.classList.add('dragging');
-
-    // Use custom data type to prevent text drops elsewhere
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('application/x-pokemon-card', cardItem.dataset.cardName);
-
-    // Hide tooltip while dragging
-    cardPreview.classList.remove('visible');
-
-    console.log('Drag started:', draggedCard);
+  // Create a visual clone for dragging
+  const createDragClone = (cardItem) => {
+    const clone = cardItem.cloneNode(true);
+    clone.classList.add('drag-clone');
+    clone.style.position = 'fixed';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '20000';
+    clone.style.width = cardItem.offsetWidth + 'px';
+    clone.style.opacity = '0.9';
+    clone.style.transform = 'rotate(2deg) scale(1.05)';
+    clone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+    document.body.appendChild(clone);
+    return clone;
   };
 
-  // Drag end handler
-  const handleDragEnd = (e) => {
+  // Update clone position
+  const updateClonePosition = (e) => {
+    if (dragClone) {
+      dragClone.style.left = (e.clientX - dragState.offsetX) + 'px';
+      dragClone.style.top = (e.clientY - dragState.offsetY) + 'px';
+    }
+  };
+
+  // Get drop target column from coordinates
+  const getDropTarget = (x, y) => {
+    // Temporarily hide the clone to get element at point
+    if (dragClone) dragClone.style.display = 'none';
+    const element = document.elementFromPoint(x, y);
+    if (dragClone) dragClone.style.display = '';
+
+    if (!element) return null;
+
+    // Find the column this element belongs to
+    const column = element.closest('.card-column');
+    return column;
+  };
+
+  // Mouse down handler - start drag
+  const handleMouseDown = (e) => {
     const cardItem = e.target.closest('.card-item');
-    if (cardItem) {
-      cardItem.classList.remove('dragging');
+    if (!cardItem) return;
+
+    // Only start drag on left mouse button
+    if (e.button !== 0) return;
+
+    // Check if this card can be dragged
+    const source = cardItem.dataset.source;
+    if (source === 'deck') {
+      const card = gameState.deck[parseInt(cardItem.dataset.cardIndex)];
+      if (!card || card.inDeck <= 0) return;
     }
 
-    console.log('Drag ended');
-    draggedCard = null;
-    dragSource = null;
+    e.preventDefault();
 
-    // Remove drag-over class from all columns
+    // Calculate offset from card corner to mouse position
+    const rect = cardItem.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+
+    dragState = {
+      cardItem: cardItem,
+      name: cardItem.dataset.cardName,
+      source: cardItem.dataset.source,
+      index: cardItem.dataset.cardIndex ? parseInt(cardItem.dataset.cardIndex) : null,
+      offsetX: offsetX,
+      offsetY: offsetY,
+      startX: e.clientX,
+      startY: e.clientY,
+      isDragging: false
+    };
+
+    // Hide tooltip while potentially dragging
+    cardPreview.classList.remove('visible');
+  };
+
+  // Mouse move handler - update drag
+  const handleMouseMove = (e) => {
+    if (!dragState) return;
+
+    // Start actual drag after moving a few pixels (prevents accidental drags)
+    if (!dragState.isDragging) {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+
+      // Start dragging
+      dragState.isDragging = true;
+      dragState.cardItem.classList.add('dragging');
+      dragClone = createDragClone(dragState.cardItem);
+    }
+
+    updateClonePosition(e);
+
+    // Update drop target highlighting
+    const targetColumn = getDropTarget(e.clientX, e.clientY);
     [deckColumn, handColumn, discardColumn].forEach(col => {
-      col.classList.remove('drag-over');
+      if (col === targetColumn && col.id.replace('-column', '') !== dragState.source) {
+        col.classList.add('drag-over');
+      } else {
+        col.classList.remove('drag-over');
+      }
     });
   };
 
-  // Drag over handler (allow drop)
-  const handleDragOver = (e) => {
-    if (!draggedCard) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-  };
+  // Mouse up handler - complete drag
+  const handleMouseUp = (e) => {
+    if (!dragState) return;
 
-  // Drag enter handler
-  const handleDragEnter = (e) => {
-    if (!draggedCard) return;
-    e.preventDefault();
+    if (dragState.isDragging) {
+      // Find drop target
+      const targetColumn = getDropTarget(e.clientX, e.clientY);
 
-    const column = e.currentTarget;
-    const targetZone = column.id.replace('-column', '');
+      if (targetColumn) {
+        const targetZone = targetColumn.id.replace('-column', '');
+        const sourceZone = dragState.source;
+        const cardName = dragState.name;
 
-    // Only show drag-over if it's a valid drop target (different from source)
-    if (targetZone !== dragSource) {
-      column.classList.add('drag-over');
-    }
-  };
-
-  // Drag leave handler
-  const handleDragLeave = (e) => {
-    const column = e.currentTarget;
-
-    // Only remove drag-over if we're actually leaving the column
-    // (not just moving to a child element)
-    if (!column.contains(e.relatedTarget)) {
-      column.classList.remove('drag-over');
-    }
-  };
-
-  // Drop handler
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    console.log('Drop event fired, draggedCard:', draggedCard);
-
-    if (!draggedCard) return;
-
-    const column = e.currentTarget;
-    const targetZone = column.id.replace('-column', '');
-    const sourceZone = draggedCard.source;
-    const cardName = draggedCard.name;
-
-    console.log('Moving card from', sourceZone, 'to', targetZone);
-
-    // Remove drag-over class
-    column.classList.remove('drag-over');
-
-    // Don't process if dropping in same zone
-    if (targetZone === sourceZone) return;
-
-    // Move card based on source and target
-    if (sourceZone === 'deck') {
-      if (targetZone === 'hand') {
-        // Deck to Hand
-        const cardIndex = draggedCard.index;
-        console.log('Drawing card at index:', cardIndex);
-        if (cardIndex !== null) {
-          drawCard(cardIndex);
-        }
-      } else if (targetZone === 'discard') {
-        // Deck to Discard
-        const cardIndex = draggedCard.index;
-        console.log('Discarding card at index:', cardIndex);
-        if (cardIndex !== null) {
-          discardCard(cardIndex);
+        // Don't process if dropping in same zone
+        if (targetZone !== sourceZone) {
+          // Move card based on source and target
+          if (sourceZone === 'deck') {
+            if (targetZone === 'hand') {
+              if (dragState.index !== null) drawCard(dragState.index);
+            } else if (targetZone === 'discard') {
+              if (dragState.index !== null) discardCard(dragState.index);
+            }
+          } else if (sourceZone === 'hand') {
+            if (targetZone === 'deck') {
+              moveHandToDeck(cardName);
+            } else if (targetZone === 'discard') {
+              moveHandToDiscard(cardName);
+            }
+          } else if (sourceZone === 'discard') {
+            if (targetZone === 'deck') {
+              moveDiscardToDeck(cardName);
+            } else if (targetZone === 'hand') {
+              moveDiscardToHand(cardName);
+            }
+          }
         }
       }
-    } else if (sourceZone === 'hand') {
-      if (targetZone === 'deck') {
-        moveHandToDeck(cardName);
-      } else if (targetZone === 'discard') {
-        moveHandToDiscard(cardName);
+
+      // Clean up
+      dragState.cardItem.classList.remove('dragging');
+      if (dragClone) {
+        dragClone.remove();
+        dragClone = null;
       }
-    } else if (sourceZone === 'discard') {
-      if (targetZone === 'deck') {
-        moveDiscardToDeck(cardName);
-      } else if (targetZone === 'hand') {
-        moveDiscardToHand(cardName);
-      }
+
+      // Remove drag-over class from all columns
+      [deckColumn, handColumn, discardColumn].forEach(col => {
+        col.classList.remove('drag-over');
+      });
     }
+
+    dragState = null;
   };
 
-  // Add drag event listeners to all card lists
+  // Add mouse event listeners
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+
+  // Add mousedown to each card list
   [deckList, handList, discardList].forEach(list => {
-    list.addEventListener('dragstart', handleDragStart, false);
-    list.addEventListener('dragend', handleDragEnd, false);
-  });
-
-  // Add drop zone event listeners to all columns
-  [deckColumn, handColumn, discardColumn].forEach(column => {
-    column.addEventListener('dragover', handleDragOver, false);
-    column.addEventListener('dragenter', handleDragEnter, false);
-    column.addEventListener('dragleave', handleDragLeave, false);
-    column.addEventListener('drop', handleDrop, false);
+    list.addEventListener('mousedown', handleMouseDown);
   });
 
   // Reset button

@@ -186,6 +186,7 @@ body {
   border: 1px solid rgba(100, 100, 120, 0.2);
   overflow: hidden;
   -webkit-app-region: no-drag;
+  position: relative;
 }
 
 .column-header {
@@ -229,6 +230,8 @@ body {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .card-item {
@@ -256,7 +259,15 @@ body {
 }
 
 .card-item.dragging {
-  opacity: 0.5;
+  opacity: 0.3;
+  cursor: grabbing;
+}
+
+/* Custom drag clone for transparent window compatibility */
+.drag-clone {
+  background: rgba(40, 40, 60, 0.95);
+  border: 2px solid rgba(255, 215, 0, 0.6);
+  border-radius: 4px;
   cursor: grabbing;
 }
 
@@ -435,6 +446,7 @@ body {
   align-items: center;
   justify-content: center;
   -webkit-app-region: no-drag;
+  z-index: 9000;
 }
 
 .modal.active {
