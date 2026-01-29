@@ -26,14 +26,19 @@ const deckCountEl = document.getElementById('deck-count');
 const handCountEl = document.getElementById('hand-count');
 const discardCountEl = document.getElementById('discard-count');
 const prizeCountEl = document.getElementById('prize-count');
+const deckHeaderCount = document.getElementById('deck-header-count');
+const handHeaderCount = document.getElementById('hand-header-count');
+const discardHeaderCount = document.getElementById('discard-header-count');
 const searchInput = document.getElementById('search-input');
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabContents = document.querySelectorAll('.tab-content');
-const drawBtn = document.getElementById('draw-btn');
 const resetBtn = document.getElementById('reset-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const importBtn = document.getElementById('import-btn');
+
+// Card columns for drag and drop
+const deckColumn = document.getElementById('deck-column');
+const handColumn = document.getElementById('hand-column');
+const discardColumn = document.getElementById('discard-column');
 
 // Deck Builder DOM Elements
 const deckBuilderModal = document.getElementById('deck-builder-modal');
@@ -66,6 +71,33 @@ function init() {
   setupEventListeners();
 }
 
+// Helper function to compare card numbers
+function compareCardNumbers(a, b) {
+  // Try to parse as integers
+  const aNum = parseInt(a);
+  const bNum = parseInt(b);
+
+  // If both are valid integers, compare numerically
+  if (!isNaN(aNum) && !isNaN(bNum)) {
+    return aNum - bNum;
+  }
+
+  // Otherwise compare as strings
+  return a.localeCompare(b);
+}
+
+// Helper function to sort cards by set and number
+function sortBySetAndNumber(cards) {
+  return cards.sort((a, b) => {
+    // First sort by set
+    const setCompare = (a.set || '').localeCompare(b.set || '');
+    if (setCompare !== 0) return setCompare;
+
+    // Then sort by card number
+    return compareCardNumbers(a.number || '0', b.number || '0');
+  });
+}
+
 // Render deck list organized by card type
 function renderDeckList(filter = '') {
   deckList.innerHTML = '';
@@ -79,10 +111,10 @@ function renderDeckList(filter = '') {
     return;
   }
 
-  // Group cards by type
-  const pokemon = filteredDeck.filter(c => c.type === 'Pokemon');
-  const trainers = filteredDeck.filter(c => c.type === 'Trainer');
-  const energy = filteredDeck.filter(c => c.type === 'Energy');
+  // Group cards by type and sort by set and number
+  const pokemon = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Pokemon'));
+  const trainers = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Trainer'));
+  const energy = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Energy'));
 
   const renderCardItem = (card) => {
     const index = gameState.deck.indexOf(card);
@@ -97,17 +129,23 @@ function renderDeckList(filter = '') {
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
 
+    cardEl.dataset.imageUrl = largeImageUrl;
+
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.inDeck}/${card.count}</span>
-      <div class="card-controls">
-        <button class="card-btn" data-action="draw" data-index="${index}" title="Add to Hand">-</button>
-        <button class="card-btn discard" data-action="discard" data-index="${index}" title="Discard">🗑️</button>
-      </div>
     `;
+
+    // Make draggable if card is in deck (set after innerHTML to ensure it's applied)
+    if (card.inDeck > 0) {
+      cardEl.setAttribute('draggable', 'true');
+      cardEl.dataset.source = 'deck';
+      cardEl.dataset.cardName = card.name;
+      cardEl.dataset.cardIndex = index;
+    }
 
     return cardEl;
   };
@@ -153,7 +191,8 @@ function renderHandList() {
     handMap[card.name].indices.push(idx);
   });
 
-  Object.values(handMap).forEach(card => {
+  // Sort hand cards by set and number
+  sortBySetAndNumber(Object.values(handMap)).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
 
@@ -161,18 +200,20 @@ function renderHandList() {
     const dbCard = cardDatabase.getCardById(card.id);
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+    cardEl.dataset.imageUrl = largeImageUrl;
 
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.handCount}</span>
-      <div class="card-controls">
-        <button class="card-btn move-btn" data-action="hand-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
-        <button class="card-btn discard" data-action="hand-to-discard" data-name="${card.name}" title="Discard">🗑️</button>
-      </div>
     `;
+
+    // Set draggable after innerHTML
+    cardEl.setAttribute('draggable', 'true');
+    cardEl.dataset.source = 'hand';
+    cardEl.dataset.cardName = card.name;
 
     handList.appendChild(cardEl);
   });
@@ -197,7 +238,8 @@ function renderDiscardList() {
     discardMap[card.name].indices.push(idx);
   });
 
-  Object.values(discardMap).forEach(card => {
+  // Sort discard cards by set and number
+  sortBySetAndNumber(Object.values(discardMap)).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
 
@@ -205,18 +247,20 @@ function renderDiscardList() {
     const dbCard = cardDatabase.getCardById(card.id);
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+    cardEl.dataset.imageUrl = largeImageUrl;
 
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.discardCount}</span>
-      <div class="card-controls">
-        <button class="card-btn move-btn" data-action="discard-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
-        <button class="card-btn move-btn" data-action="discard-to-hand" data-name="${card.name}" title="Add to Hand">✋</button>
-      </div>
     `;
+
+    // Set draggable after innerHTML
+    cardEl.setAttribute('draggable', 'true');
+    cardEl.dataset.source = 'discard';
+    cardEl.dataset.cardName = card.name;
 
     discardList.appendChild(cardEl);
   });
@@ -229,6 +273,11 @@ function updateStats() {
   handCountEl.textContent = gameState.hand.length;
   discardCountEl.textContent = gameState.discard.length;
   prizeCountEl.textContent = gameState.prizes;
+
+  // Update column header counts
+  if (deckHeaderCount) deckHeaderCount.textContent = totalInDeck;
+  if (handHeaderCount) handHeaderCount.textContent = gameState.hand.length;
+  if (discardHeaderCount) discardHeaderCount.textContent = gameState.discard.length;
 }
 
 // Draw a card from deck to hand
@@ -359,7 +408,9 @@ function openDeckBuilder() {
     name: card.name,
     count: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   currentFilter = 'all';
@@ -398,10 +449,10 @@ function renderBuilderDeck() {
     return;
   }
 
-  // Group by type
-  const pokemon = builderDeck.filter(c => c.type === 'Pokemon');
-  const trainers = builderDeck.filter(c => c.type === 'Trainer');
-  const energy = builderDeck.filter(c => c.type === 'Energy');
+  // Group by type and sort by set and number
+  const pokemon = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Pokemon'));
+  const trainers = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Trainer'));
+  const energy = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Energy'));
 
   const renderGroup = (cards, label) => {
     if (cards.length === 0) return;
@@ -512,7 +563,9 @@ function addCardToDeck(cardId) {
       name: card.name,
       count: 1,
       type: cardType,
-      imageUrl: card.images.small || ''
+      imageUrl: card.images.small || '',
+      set: card.set || '',
+      number: card.number || ''
     });
   }
 
@@ -594,7 +647,9 @@ function saveDeck() {
     count: card.count,
     inDeck: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   gameState.hand = [];
@@ -683,7 +738,9 @@ function parseDeckText(text) {
         name: card.name,
         count: count,
         type: cardType,
-        imageUrl: card.images.small || ''
+        imageUrl: card.images.small || '',
+        set: card.set || '',
+        number: card.number || ''
       });
     }
   }
@@ -726,7 +783,9 @@ function importDeck() {
     count: card.count,
     inDeck: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   gameState.hand = [];
@@ -742,146 +801,215 @@ function importDeck() {
 
 // Event Listeners
 function setupEventListeners() {
-  // Tab switching
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetTab = btn.dataset.tab;
-
-      tabBtns.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      btn.classList.add('active');
-      document.getElementById(`${targetTab}-tab`).classList.add('active');
-    });
-  });
-
   // Search in deck
   searchInput.addEventListener('input', (e) => {
     renderDeckList(e.target.value);
   });
 
-  // Card controls (event delegation)
-  deckList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const index = parseInt(e.target.dataset.index);
-
-      if (action === 'draw') {
-        drawCard(index);
-      } else if (action === 'discard') {
-        discardCard(index);
+  // ========== Card Hover Preview (entire card-item triggers tooltip) ==========
+  const setupCardHover = (listElement) => {
+    listElement.addEventListener('mouseover', (e) => {
+      const cardItem = e.target.closest('.card-item');
+      if (cardItem) {
+        const imageUrl = cardItem.dataset.imageUrl;
+        if (imageUrl) {
+          cardPreviewImage.src = imageUrl;
+          cardPreview.classList.add('visible');
+          updatePreviewPosition(e);
+        }
       }
-    }
-  });
+    });
 
-  // Deck list hover preview
-  deckList.addEventListener('mouseover', (e) => {
-    if (e.target.classList.contains('hoverable')) {
-      const imageUrl = e.target.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
+    listElement.addEventListener('mouseout', (e) => {
+      const cardItem = e.target.closest('.card-item');
+      const relatedCardItem = e.relatedTarget?.closest?.('.card-item');
+      // Only hide if we're leaving the card-item entirely
+      if (cardItem && cardItem !== relatedCardItem) {
+        cardPreview.classList.remove('visible');
+      }
+    });
+
+    listElement.addEventListener('mousemove', (e) => {
+      if (cardPreview.classList.contains('visible')) {
         updatePreviewPosition(e);
       }
+    });
+  };
+
+  setupCardHover(deckList);
+  setupCardHover(handList);
+  setupCardHover(discardList);
+
+  // ========== Custom Drag and Drop (mouse-based for transparent windows) ==========
+  let dragState = null;
+  let dragClone = null;
+
+  // Create a visual clone for dragging
+  const createDragClone = (cardItem) => {
+    const clone = cardItem.cloneNode(true);
+    clone.classList.add('drag-clone');
+    clone.style.position = 'fixed';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '20000';
+    clone.style.width = cardItem.offsetWidth + 'px';
+    clone.style.opacity = '0.9';
+    clone.style.transform = 'rotate(2deg) scale(1.05)';
+    clone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+    document.body.appendChild(clone);
+    return clone;
+  };
+
+  // Update clone position
+  const updateClonePosition = (e) => {
+    if (dragClone) {
+      dragClone.style.left = (e.clientX - dragState.offsetX) + 'px';
+      dragClone.style.top = (e.clientY - dragState.offsetY) + 'px';
     }
-  });
+  };
 
-  deckList.addEventListener('mouseout', (e) => {
-    if (e.target.classList.contains('hoverable')) {
-      cardPreview.classList.remove('visible');
+  // Get drop target column from coordinates
+  const getDropTarget = (x, y) => {
+    // Temporarily hide the clone to get element at point
+    if (dragClone) dragClone.style.display = 'none';
+    const element = document.elementFromPoint(x, y);
+    if (dragClone) dragClone.style.display = '';
+
+    if (!element) return null;
+
+    // Find the column this element belongs to
+    const column = element.closest('.card-column');
+    return column;
+  };
+
+  // Mouse down handler - start drag
+  const handleMouseDown = (e) => {
+    const cardItem = e.target.closest('.card-item');
+    if (!cardItem) return;
+
+    // Only start drag on left mouse button
+    if (e.button !== 0) return;
+
+    // Check if this card can be dragged
+    const source = cardItem.dataset.source;
+    if (source === 'deck') {
+      const card = gameState.deck[parseInt(cardItem.dataset.cardIndex)];
+      if (!card || card.inDeck <= 0) return;
     }
-  });
 
-  deckList.addEventListener('mousemove', (e) => {
-    if (e.target.classList.contains('hoverable') && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
+    e.preventDefault();
+
+    // Calculate offset from card corner to mouse position
+    const rect = cardItem.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+
+    dragState = {
+      cardItem: cardItem,
+      name: cardItem.dataset.cardName,
+      source: cardItem.dataset.source,
+      index: cardItem.dataset.cardIndex ? parseInt(cardItem.dataset.cardIndex) : null,
+      offsetX: offsetX,
+      offsetY: offsetY,
+      startX: e.clientX,
+      startY: e.clientY,
+      isDragging: false
+    };
+
+    // Hide tooltip while potentially dragging
+    cardPreview.classList.remove('visible');
+  };
+
+  // Mouse move handler - update drag
+  const handleMouseMove = (e) => {
+    if (!dragState) return;
+
+    // Start actual drag after moving a few pixels (prevents accidental drags)
+    if (!dragState.isDragging) {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+
+      // Start dragging
+      dragState.isDragging = true;
+      dragState.cardItem.classList.add('dragging');
+      dragClone = createDragClone(dragState.cardItem);
     }
-  });
 
-  // Hand list controls (event delegation)
-  handList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const cardName = e.target.dataset.name;
+    updateClonePosition(e);
 
-      if (action === 'hand-to-deck') {
-        moveHandToDeck(cardName);
-      } else if (action === 'hand-to-discard') {
-        moveHandToDiscard(cardName);
+    // Update drop target highlighting
+    const targetColumn = getDropTarget(e.clientX, e.clientY);
+    [deckColumn, handColumn, discardColumn].forEach(col => {
+      if (col === targetColumn && col.id.replace('-column', '') !== dragState.source) {
+        col.classList.add('drag-over');
+      } else {
+        col.classList.remove('drag-over');
       }
-    }
-  });
+    });
+  };
 
-  // Hand list hover preview
-  handList.addEventListener('mouseover', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      const imageUrl = hoverable.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
-        updatePreviewPosition(e);
+  // Mouse up handler - complete drag
+  const handleMouseUp = (e) => {
+    if (!dragState) return;
+
+    if (dragState.isDragging) {
+      // Find drop target
+      const targetColumn = getDropTarget(e.clientX, e.clientY);
+
+      if (targetColumn) {
+        const targetZone = targetColumn.id.replace('-column', '');
+        const sourceZone = dragState.source;
+        const cardName = dragState.name;
+
+        // Don't process if dropping in same zone
+        if (targetZone !== sourceZone) {
+          // Move card based on source and target
+          if (sourceZone === 'deck') {
+            if (targetZone === 'hand') {
+              if (dragState.index !== null) drawCard(dragState.index);
+            } else if (targetZone === 'discard') {
+              if (dragState.index !== null) discardCard(dragState.index);
+            }
+          } else if (sourceZone === 'hand') {
+            if (targetZone === 'deck') {
+              moveHandToDeck(cardName);
+            } else if (targetZone === 'discard') {
+              moveHandToDiscard(cardName);
+            }
+          } else if (sourceZone === 'discard') {
+            if (targetZone === 'deck') {
+              moveDiscardToDeck(cardName);
+            } else if (targetZone === 'hand') {
+              moveDiscardToHand(cardName);
+            }
+          }
+        }
       }
-    }
-  });
 
-  handList.addEventListener('mouseout', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      cardPreview.classList.remove('visible');
-    }
-  });
-
-  handList.addEventListener('mousemove', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
-    }
-  });
-
-  // Discard list controls (event delegation)
-  discardList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const cardName = e.target.dataset.name;
-
-      if (action === 'discard-to-deck') {
-        moveDiscardToDeck(cardName);
-      } else if (action === 'discard-to-hand') {
-        moveDiscardToHand(cardName);
+      // Clean up
+      dragState.cardItem.classList.remove('dragging');
+      if (dragClone) {
+        dragClone.remove();
+        dragClone = null;
       }
-    }
-  });
 
-  // Discard list hover preview
-  discardList.addEventListener('mouseover', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      const imageUrl = hoverable.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
-        updatePreviewPosition(e);
-      }
+      // Remove drag-over class from all columns
+      [deckColumn, handColumn, discardColumn].forEach(col => {
+        col.classList.remove('drag-over');
+      });
     }
-  });
 
-  discardList.addEventListener('mouseout', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      cardPreview.classList.remove('visible');
-    }
-  });
+    dragState = null;
+  };
 
-  discardList.addEventListener('mousemove', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
-    }
-  });
+  // Add mouse event listeners
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
 
-  // Quick draw button
-  drawBtn.addEventListener('click', quickDraw);
+  // Add mousedown to each card list
+  [deckList, handList, discardList].forEach(list => {
+    list.addEventListener('mousedown', handleMouseDown);
+  });
 
   // Reset button
   resetBtn.addEventListener('click', resetGame);
@@ -1005,12 +1133,6 @@ document.addEventListener('keydown', (e) => {
     if (importDeckModal.classList.contains('active')) {
       closeImportDeck();
     }
-  }
-
-  // Space: Quick draw (when not typing)
-  if (e.code === 'Space' && !e.target.matches('input, textarea')) {
-    e.preventDefault();
-    quickDraw();
   }
 
   // R: Reset

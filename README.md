@@ -1,23 +1,27 @@
 # Pokemon TCG Live Deck Tracker
 
-A desktop overlay application that helps you track your deck during Pokemon TCG Live games.
+A desktop overlay application that helps you track your deck, hand, and discard pile during Pokemon TCG Live games.
 
 ## Features
 
-- **Always-on-Top Overlay** - Semi-transparent window that stays above your game
-- **Deck Import** - Paste your deck list to load it instantly
-- **Manual Card Tracking** - Track draws and discards with a click
+- **Always-on-Top Overlay** - Semi-transparent window that stays above your game (even fullscreen)
+- **Three-Column Layout** - View Deck, Hand, and Discard piles simultaneously
+- **Drag & Drop** - Move cards between zones by dragging
+- **Deck Builder** - Search the card database and build decks visually
+- **Deck Import** - Paste deck lists exported from Pokemon TCG Live
+- **Card Preview** - Hover over any card to see its full image
 - **Search & Filter** - Quickly find cards in your deck
-- **Discard Pile Viewer** - See what's been discarded
-- **Keyboard Shortcuts** - Quick actions without clicking
+- **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy
 - **Draggable & Resizable** - Position the overlay wherever works best
 
 ## Screenshot
 
-The overlay displays:
-- Card counts remaining in deck (e.g., "2/4" means 2 of 4 copies still in deck)
-- Total deck size, discard count, and prize count
-- Tabs to switch between deck list and discard pile views
+The overlay displays three columns:
+- **Deck** - Cards remaining in your deck with counts (e.g., "2/4" means 2 of 4 copies still in deck)
+- **Hand** - Cards currently in your hand
+- **Discard** - Cards that have been discarded
+
+Stats bar shows total counts for Deck, Hand, Discard, and Prizes.
 
 ## Installation
 
@@ -31,22 +35,41 @@ npm start
 
 ## Usage
 
-### Importing Your Deck
+### Building a Deck
 
-1. Click **Import Deck** at the bottom of the overlay
-2. Paste your deck list in this format:
+1. Click **Build Deck** at the bottom of the overlay
+2. Search for cards by name
+3. Filter by type (Pokemon, Trainer, Energy) or Standard-legal only
+4. Click **Add** to add cards to your deck
+5. Use **+/-** buttons to adjust quantities
+6. Click **Save Deck** when done
+
+### Importing a Deck from Pokemon TCG Live
+
+1. In Pokemon TCG Live, export your deck (copies to clipboard)
+2. Click **Import Deck** in the tracker
+3. Paste your deck list in this format:
    ```
-   4 Pikachu ex
-   3 Professor's Research
-   12 Electric Energy
+   Pokémon: 6
+   1 Togekiss SSP 72
+   4 Gholdengo ex PAR 139
+
+   Trainer: 14
+   4 Ultra Ball SVI 196
+   ...
+
+   Energy: 8
+   4 Basic {M} Energy SVE 8
+   ...
    ```
-3. Click **Import**
+4. Click **Import**
 
 ### Tracking Cards During a Game
 
-- Click **-** next to a card to mark it as drawn (decreases deck count)
-- Click the trash icon to move a card to the discard pile
-- Use **Draw Card** button for a quick draw
+- **Drag cards** between Deck, Hand, and Discard columns
+- Cards maintain their counts (dragging from Deck decreases deck count)
+- Hover over any card to see the full card image
+- Use the search bar to filter cards in the deck
 - Click **Reset Game** to restore all cards to the deck
 
 ### Keyboard Shortcuts
@@ -54,39 +77,41 @@ npm start
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac) | Toggle overlay visibility |
-| `Space` | Quick draw (when not typing) |
 | `Ctrl+R` | Reset game |
+| `Escape` | Close modals |
 
 ## Project Structure
 
 ```
 ptcgl-deck-tracker/
-├── main.js          # Electron main process
-├── renderer.js      # UI logic and deck tracking
-├── index.html       # UI structure
-├── styles.css       # Styling
-├── package.json     # Dependencies and scripts
+├── main.js              # Electron main process
+├── renderer.js          # UI logic and deck tracking
+├── index.html           # UI structure
+├── styles.css           # Styling
+├── card-database.js     # Card database loader and search
+├── package.json         # Dependencies and scripts
 ├── scripts/
 │   └── sync-cards.js    # Pokemon TCG API card sync
-└── data/            # Synced card data (generated)
+└── pokemon-tcg-data/    # Card data (from Pokemon TCG Data repo)
+    └── cards/en/        # English card JSON files by set
 ```
 
-## Card Database Sync
+## Card Database
 
-The project includes a script to sync card data from the [Pokemon TCG API](https://pokemontcg.io):
+The project includes card data from the [Pokemon TCG Data](https://github.com/PokemonTCG/pokemon-tcg-data) repository. This provides:
+- Card names, types, and images
+- Set codes for matching Pokemon TCG Live exports
+- Standard format legality information
 
-```bash
-npm run sync-cards           # Sync Standard format cards
-```
-
-This downloads card metadata to the `data/` directory for offline use.
+To update the card database, pull the latest from the pokemon-tcg-data submodule or replace the data files.
 
 ## Technical Details
 
 - Built with [Electron](https://www.electronjs.org/) v35
-- Uses the [Pokemon TCG SDK](https://github.com/PokemonTCG/pokemon-tcg-sdk-javascript) for card data
-- Overlay uses transparent, frameless window with always-on-top flag
-- Works best with the game in windowed or borderless windowed mode
+- Uses local card data from Pokemon TCG Data repository
+- Transparent, frameless overlay window with `screen-saver` level always-on-top
+- Custom mouse-based drag & drop (works with transparent windows)
+- Works with the game in any mode including exclusive fullscreen
 
 ## Legal
 
