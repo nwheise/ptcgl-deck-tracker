@@ -31,6 +31,10 @@
         <span id="hand-count" class="stat-value">0</span>
       </div>
       <div class="stat-item">
+        <span class="stat-label">In Play:</span>
+        <span id="inplay-count" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
         <span class="stat-label">Discard:</span>
         <span id="discard-count" class="stat-value">0</span>
       </div>
@@ -48,6 +52,15 @@
     <!-- Search Bar -->
     <div class="search-container">
       <input type="text" id="search-input" placeholder="Search cards..." />
+    </div>
+
+    <!-- In Play Section (above columns) -->
+    <div class="inplay-section" id="inplay-column">
+      <div class="column-header" id="inplay-drop-zone">
+        <span class="column-title">In Play</span>
+        <span class="column-count" id="inplay-header-count">0</span>
+      </div>
+      <div id="inplay-list" class="card-list inplay-list"></div>
     </div>
 
     <!-- Card Lists Container - Three Columns -->

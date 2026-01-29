@@ -9,6 +9,7 @@ let gameState = {
   deck: [],
   hand: [],
   discard: [],
+  inPlay: [],
   prizes: 6
 };
 
@@ -21,13 +22,16 @@ let searchDebounceTimer = null;
 // DOM Elements
 const deckList = document.getElementById('deck-list');
 const handList = document.getElementById('hand-list');
+const inPlayList = document.getElementById('inplay-list');
 const discardList = document.getElementById('discard-list');
 const deckCountEl = document.getElementById('deck-count');
 const handCountEl = document.getElementById('hand-count');
+const inPlayCountEl = document.getElementById('inplay-count');
 const discardCountEl = document.getElementById('discard-count');
 const prizeCountEl = document.getElementById('prize-count');
 const deckHeaderCount = document.getElementById('deck-header-count');
 const handHeaderCount = document.getElementById('hand-header-count');
+const inPlayHeaderCount = document.getElementById('inplay-header-count');
 const discardHeaderCount = document.getElementById('discard-header-count');
 const searchInput = document.getElementById('search-input');
 const resetBtn = document.getElementById('reset-btn');
@@ -38,6 +42,7 @@ const importBtn = document.getElementById('import-btn');
 // Card columns for drag and drop
 const deckColumn = document.getElementById('deck-column');
 const handColumn = document.getElementById('hand-column');
+const inPlayColumn = document.getElementById('inplay-column');
 const discardColumn = document.getElementById('discard-column');
 
 // Deck Builder DOM Elements
@@ -66,6 +71,7 @@ const cancelImportBtn = document.getElementById('cancel-import-btn');
 function init() {
   renderDeckList();
   renderHandList();
+  renderInPlayList();
   renderDiscardList();
   updateStats();
   setupEventListeners();
@@ -219,6 +225,53 @@ function renderHandList() {
   });
 }
 
+// Render in play list
+function renderInPlayList() {
+  inPlayList.innerHTML = '';
+
+  if (gameState.inPlay.length === 0) {
+    inPlayList.innerHTML = '<div class="empty-state">No cards in play</div>';
+    return;
+  }
+
+  // Group in play cards by name
+  const inPlayMap = {};
+  gameState.inPlay.forEach((card, idx) => {
+    if (!inPlayMap[card.name]) {
+      inPlayMap[card.name] = { ...card, inPlayCount: 0, indices: [] };
+    }
+    inPlayMap[card.name].inPlayCount++;
+    inPlayMap[card.name].indices.push(idx);
+  });
+
+  // Sort in play cards by set and number
+  sortBySetAndNumber(Object.values(inPlayMap)).forEach(card => {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'card-item';
+
+    // Get image URLs from card database if available
+    const dbCard = cardDatabase.getCardById(card.id);
+    const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
+    const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+    cardEl.dataset.imageUrl = largeImageUrl;
+
+    cardEl.innerHTML = `
+      <div class="card-info">
+        <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="card-name">${card.name}</span>
+      </div>
+      <span class="card-count">${card.inPlayCount}</span>
+    `;
+
+    // Set draggable after innerHTML
+    cardEl.setAttribute('draggable', 'true');
+    cardEl.dataset.source = 'inplay';
+    cardEl.dataset.cardName = card.name;
+
+    inPlayList.appendChild(cardEl);
+  });
+}
+
 // Render discard list
 function renderDiscardList() {
   discardList.innerHTML = '';
@@ -271,12 +324,14 @@ function updateStats() {
   const totalInDeck = gameState.deck.reduce((sum, card) => sum + card.inDeck, 0);
   deckCountEl.textContent = totalInDeck;
   handCountEl.textContent = gameState.hand.length;
+  inPlayCountEl.textContent = gameState.inPlay.length;
   discardCountEl.textContent = gameState.discard.length;
   prizeCountEl.textContent = gameState.prizes;
 
   // Update column header counts
   if (deckHeaderCount) deckHeaderCount.textContent = totalInDeck;
   if (handHeaderCount) handHeaderCount.textContent = gameState.hand.length;
+  if (inPlayHeaderCount) inPlayHeaderCount.textContent = gameState.inPlay.length;
   if (discardHeaderCount) discardHeaderCount.textContent = gameState.discard.length;
 }
 
@@ -381,6 +436,92 @@ function moveDiscardToHand(cardName) {
   updateStats();
 }
 
+// Move card from deck to in play
+function moveDeckToInPlay(cardIndex) {
+  const card = gameState.deck[cardIndex];
+  if (card.inDeck > 0) {
+    card.inDeck--;
+    gameState.inPlay.push({ ...card });
+    renderDeckList(searchInput.value);
+    renderInPlayList();
+    updateStats();
+  }
+}
+
+// Move card from hand to in play
+function moveHandToInPlay(cardName) {
+  const handIndex = gameState.hand.findIndex(c => c.name === cardName);
+  if (handIndex === -1) return;
+
+  const card = gameState.hand[handIndex];
+  gameState.hand.splice(handIndex, 1);
+  gameState.inPlay.push({ ...card });
+
+  renderHandList();
+  renderInPlayList();
+  updateStats();
+}
+
+// Move card from in play to hand
+function moveInPlayToHand(cardName) {
+  const inPlayIndex = gameState.inPlay.findIndex(c => c.name === cardName);
+  if (inPlayIndex === -1) return;
+
+  const card = gameState.inPlay[inPlayIndex];
+  gameState.inPlay.splice(inPlayIndex, 1);
+  gameState.hand.push({ ...card });
+
+  renderInPlayList();
+  renderHandList();
+  updateStats();
+}
+
+// Move card from in play to deck
+function moveInPlayToDeck(cardName) {
+  const inPlayIndex = gameState.inPlay.findIndex(c => c.name === cardName);
+  if (inPlayIndex === -1) return;
+
+  gameState.inPlay.splice(inPlayIndex, 1);
+
+  // Find the deck card and increment its inDeck count
+  const deckCard = gameState.deck.find(c => c.name === cardName);
+  if (deckCard) {
+    deckCard.inDeck++;
+  }
+
+  renderInPlayList();
+  renderDeckList(searchInput.value);
+  updateStats();
+}
+
+// Move card from in play to discard
+function moveInPlayToDiscard(cardName) {
+  const inPlayIndex = gameState.inPlay.findIndex(c => c.name === cardName);
+  if (inPlayIndex === -1) return;
+
+  const card = gameState.inPlay[inPlayIndex];
+  gameState.inPlay.splice(inPlayIndex, 1);
+  gameState.discard.push({ ...card });
+
+  renderInPlayList();
+  renderDiscardList();
+  updateStats();
+}
+
+// Move card from discard to in play
+function moveDiscardToInPlay(cardName) {
+  const discardIndex = gameState.discard.findIndex(c => c.name === cardName);
+  if (discardIndex === -1) return;
+
+  const card = gameState.discard[discardIndex];
+  gameState.discard.splice(discardIndex, 1);
+  gameState.inPlay.push({ ...card });
+
+  renderDiscardList();
+  renderInPlayList();
+  updateStats();
+}
+
 // Reset game
 function resetGame() {
   if (confirm('Reset the game? This will restore all cards to the deck.')) {
@@ -389,11 +530,13 @@ function resetGame() {
       card.inDeck = card.count;
     });
     gameState.hand = [];
+    gameState.inPlay = [];
     gameState.discard = [];
     gameState.prizes = 6;
 
     renderDeckList(searchInput.value);
     renderHandList();
+    renderInPlayList();
     renderDiscardList();
     updateStats();
   }
@@ -653,11 +796,13 @@ function saveDeck() {
   }));
 
   gameState.hand = [];
+  gameState.inPlay = [];
   gameState.discard = [];
   gameState.prizes = 6;
 
   renderDeckList();
   renderHandList();
+  renderInPlayList();
   renderDiscardList();
   updateStats();
   closeDeckBuilder();
@@ -789,11 +934,13 @@ function importDeck() {
   }));
 
   gameState.hand = [];
+  gameState.inPlay = [];
   gameState.discard = [];
   gameState.prizes = 6;
 
   renderDeckList();
   renderHandList();
+  renderInPlayList();
   renderDiscardList();
   updateStats();
   closeImportDeck();
@@ -838,6 +985,7 @@ function setupEventListeners() {
 
   setupCardHover(deckList);
   setupCardHover(handList);
+  setupCardHover(inPlayList);
   setupCardHover(discardList);
 
   // ========== Custom Drag and Drop (mouse-based for transparent windows) ==========
@@ -876,8 +1024,8 @@ function setupEventListeners() {
 
     if (!element) return null;
 
-    // Find the column this element belongs to
-    const column = element.closest('.card-column');
+    // Find the column this element belongs to (either card-column or inplay-section)
+    const column = element.closest('.card-column, .inplay-section');
     return column;
   };
 
@@ -939,7 +1087,7 @@ function setupEventListeners() {
 
     // Update drop target highlighting
     const targetColumn = getDropTarget(e.clientX, e.clientY);
-    [deckColumn, handColumn, discardColumn].forEach(col => {
+    [deckColumn, handColumn, inPlayColumn, discardColumn].forEach(col => {
       if (col === targetColumn && col.id.replace('-column', '') !== dragState.source) {
         col.classList.add('drag-over');
       } else {
@@ -967,20 +1115,34 @@ function setupEventListeners() {
           if (sourceZone === 'deck') {
             if (targetZone === 'hand') {
               if (dragState.index !== null) drawCard(dragState.index);
+            } else if (targetZone === 'inplay') {
+              if (dragState.index !== null) moveDeckToInPlay(dragState.index);
             } else if (targetZone === 'discard') {
               if (dragState.index !== null) discardCard(dragState.index);
             }
           } else if (sourceZone === 'hand') {
             if (targetZone === 'deck') {
               moveHandToDeck(cardName);
+            } else if (targetZone === 'inplay') {
+              moveHandToInPlay(cardName);
             } else if (targetZone === 'discard') {
               moveHandToDiscard(cardName);
+            }
+          } else if (sourceZone === 'inplay') {
+            if (targetZone === 'deck') {
+              moveInPlayToDeck(cardName);
+            } else if (targetZone === 'hand') {
+              moveInPlayToHand(cardName);
+            } else if (targetZone === 'discard') {
+              moveInPlayToDiscard(cardName);
             }
           } else if (sourceZone === 'discard') {
             if (targetZone === 'deck') {
               moveDiscardToDeck(cardName);
             } else if (targetZone === 'hand') {
               moveDiscardToHand(cardName);
+            } else if (targetZone === 'inplay') {
+              moveDiscardToInPlay(cardName);
             }
           }
         }
@@ -994,7 +1156,7 @@ function setupEventListeners() {
       }
 
       // Remove drag-over class from all columns
-      [deckColumn, handColumn, discardColumn].forEach(col => {
+      [deckColumn, handColumn, inPlayColumn, discardColumn].forEach(col => {
         col.classList.remove('drag-over');
       });
     }
@@ -1007,7 +1169,7 @@ function setupEventListeners() {
   document.addEventListener('mouseup', handleMouseUp);
 
   // Add mousedown to each card list
-  [deckList, handList, discardList].forEach(list => {
+  [deckList, handList, inPlayList, discardList].forEach(list => {
     list.addEventListener('mousedown', handleMouseDown);
   });
 
