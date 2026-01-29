@@ -26,14 +26,20 @@ const deckCountEl = document.getElementById('deck-count');
 const handCountEl = document.getElementById('hand-count');
 const discardCountEl = document.getElementById('discard-count');
 const prizeCountEl = document.getElementById('prize-count');
+const deckHeaderCount = document.getElementById('deck-header-count');
+const handHeaderCount = document.getElementById('hand-header-count');
+const discardHeaderCount = document.getElementById('discard-header-count');
 const searchInput = document.getElementById('search-input');
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabContents = document.querySelectorAll('.tab-content');
 const drawBtn = document.getElementById('draw-btn');
 const resetBtn = document.getElementById('reset-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const importBtn = document.getElementById('import-btn');
+
+// Card columns for drag and drop
+const deckColumn = document.getElementById('deck-column');
+const handColumn = document.getElementById('hand-column');
+const discardColumn = document.getElementById('discard-column');
 
 // Deck Builder DOM Elements
 const deckBuilderModal = document.getElementById('deck-builder-modal');
@@ -97,16 +103,21 @@ function renderDeckList(filter = '') {
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
 
+    // Make draggable if card is in deck
+    if (card.inDeck > 0) {
+      cardEl.draggable = true;
+      cardEl.dataset.source = 'deck';
+      cardEl.dataset.cardName = card.name;
+      cardEl.dataset.cardIndex = index;
+    }
+    cardEl.dataset.imageUrl = largeImageUrl;
+
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.inDeck}/${card.count}</span>
-      <div class="card-controls">
-        <button class="card-btn" data-action="draw" data-index="${index}" title="Add to Hand">-</button>
-        <button class="card-btn discard" data-action="discard" data-index="${index}" title="Discard">🗑️</button>
-      </div>
     `;
 
     return cardEl;
@@ -156,22 +167,22 @@ function renderHandList() {
   Object.values(handMap).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
+    cardEl.draggable = true;
+    cardEl.dataset.source = 'hand';
+    cardEl.dataset.cardName = card.name;
 
     // Get image URLs from card database if available
     const dbCard = cardDatabase.getCardById(card.id);
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+    cardEl.dataset.imageUrl = largeImageUrl;
 
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.handCount}</span>
-      <div class="card-controls">
-        <button class="card-btn move-btn" data-action="hand-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
-        <button class="card-btn discard" data-action="hand-to-discard" data-name="${card.name}" title="Discard">🗑️</button>
-      </div>
     `;
 
     handList.appendChild(cardEl);
@@ -200,22 +211,22 @@ function renderDiscardList() {
   Object.values(discardMap).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
+    cardEl.draggable = true;
+    cardEl.dataset.source = 'discard';
+    cardEl.dataset.cardName = card.name;
 
     // Get image URLs from card database if available
     const dbCard = cardDatabase.getCardById(card.id);
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
+    cardEl.dataset.imageUrl = largeImageUrl;
 
     cardEl.innerHTML = `
-      <div class="card-info hoverable" data-image-url="${largeImageUrl}">
+      <div class="card-info">
         <img class="card-thumbnail" src="${smallImageUrl}" alt="" loading="lazy" onerror="this.style.display='none'" />
         <span class="card-name">${card.name}</span>
       </div>
       <span class="card-count">${card.discardCount}</span>
-      <div class="card-controls">
-        <button class="card-btn move-btn" data-action="discard-to-deck" data-name="${card.name}" title="Return to Deck">↩</button>
-        <button class="card-btn move-btn" data-action="discard-to-hand" data-name="${card.name}" title="Add to Hand">✋</button>
-      </div>
     `;
 
     discardList.appendChild(cardEl);
@@ -229,6 +240,11 @@ function updateStats() {
   handCountEl.textContent = gameState.hand.length;
   discardCountEl.textContent = gameState.discard.length;
   prizeCountEl.textContent = gameState.prizes;
+
+  // Update column header counts
+  if (deckHeaderCount) deckHeaderCount.textContent = totalInDeck;
+  if (handHeaderCount) handHeaderCount.textContent = gameState.hand.length;
+  if (discardHeaderCount) discardHeaderCount.textContent = gameState.discard.length;
 }
 
 // Draw a card from deck to hand
@@ -742,142 +758,173 @@ function importDeck() {
 
 // Event Listeners
 function setupEventListeners() {
-  // Tab switching
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetTab = btn.dataset.tab;
-
-      tabBtns.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      btn.classList.add('active');
-      document.getElementById(`${targetTab}-tab`).classList.add('active');
-    });
-  });
-
   // Search in deck
   searchInput.addEventListener('input', (e) => {
     renderDeckList(e.target.value);
   });
 
-  // Card controls (event delegation)
-  deckList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const index = parseInt(e.target.dataset.index);
-
-      if (action === 'draw') {
-        drawCard(index);
-      } else if (action === 'discard') {
-        discardCard(index);
+  // ========== Card Hover Preview (entire card-item triggers tooltip) ==========
+  const setupCardHover = (listElement) => {
+    listElement.addEventListener('mouseover', (e) => {
+      const cardItem = e.target.closest('.card-item');
+      if (cardItem) {
+        const imageUrl = cardItem.dataset.imageUrl;
+        if (imageUrl) {
+          cardPreviewImage.src = imageUrl;
+          cardPreview.classList.add('visible');
+          updatePreviewPosition(e);
+        }
       }
-    }
-  });
+    });
 
-  // Deck list hover preview
-  deckList.addEventListener('mouseover', (e) => {
-    if (e.target.classList.contains('hoverable')) {
-      const imageUrl = e.target.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
+    listElement.addEventListener('mouseout', (e) => {
+      const cardItem = e.target.closest('.card-item');
+      const relatedCardItem = e.relatedTarget?.closest?.('.card-item');
+      // Only hide if we're leaving the card-item entirely
+      if (cardItem && cardItem !== relatedCardItem) {
+        cardPreview.classList.remove('visible');
+      }
+    });
+
+    listElement.addEventListener('mousemove', (e) => {
+      if (cardPreview.classList.contains('visible')) {
         updatePreviewPosition(e);
       }
+    });
+  };
+
+  setupCardHover(deckList);
+  setupCardHover(handList);
+  setupCardHover(discardList);
+
+  // ========== Drag and Drop ==========
+  let draggedCard = null;
+  let dragSource = null;
+
+  // Drag start handler
+  const handleDragStart = (e) => {
+    const cardItem = e.target.closest('.card-item');
+    if (!cardItem || !cardItem.draggable) return;
+
+    draggedCard = {
+      name: cardItem.dataset.cardName,
+      source: cardItem.dataset.source,
+      index: cardItem.dataset.cardIndex ? parseInt(cardItem.dataset.cardIndex) : null
+    };
+    dragSource = cardItem.dataset.source;
+
+    cardItem.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cardItem.dataset.cardName);
+
+    // Hide tooltip while dragging
+    cardPreview.classList.remove('visible');
+  };
+
+  // Drag end handler
+  const handleDragEnd = (e) => {
+    const cardItem = e.target.closest('.card-item');
+    if (cardItem) {
+      cardItem.classList.remove('dragging');
     }
-  });
+    draggedCard = null;
+    dragSource = null;
 
-  deckList.addEventListener('mouseout', (e) => {
-    if (e.target.classList.contains('hoverable')) {
-      cardPreview.classList.remove('visible');
+    // Remove drag-over class from all columns
+    [deckColumn, handColumn, discardColumn].forEach(col => {
+      col.classList.remove('drag-over');
+    });
+  };
+
+  // Drag over handler (allow drop)
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  // Drag enter handler
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    const column = e.target.closest('.card-column');
+    if (column && draggedCard) {
+      const targetZone = column.id.replace('-column', '');
+      // Only show drag-over if it's a valid drop target
+      if (targetZone !== dragSource) {
+        column.classList.add('drag-over');
+      }
     }
-  });
+  };
 
-  deckList.addEventListener('mousemove', (e) => {
-    if (e.target.classList.contains('hoverable') && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
+  // Drag leave handler
+  const handleDragLeave = (e) => {
+    const column = e.target.closest('.card-column');
+    if (column) {
+      // Check if we're leaving to a child element
+      const relatedColumn = e.relatedTarget?.closest?.('.card-column');
+      if (column !== relatedColumn) {
+        column.classList.remove('drag-over');
+      }
     }
-  });
+  };
 
-  // Hand list controls (event delegation)
-  handList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const cardName = e.target.dataset.name;
+  // Drop handler
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const column = e.target.closest('.card-column');
+    if (!column || !draggedCard) return;
 
-      if (action === 'hand-to-deck') {
+    const targetZone = column.id.replace('-column', '');
+    const sourceZone = draggedCard.source;
+    const cardName = draggedCard.name;
+
+    // Remove drag-over class
+    column.classList.remove('drag-over');
+
+    // Don't process if dropping in same zone
+    if (targetZone === sourceZone) return;
+
+    // Move card based on source and target
+    if (sourceZone === 'deck') {
+      if (targetZone === 'hand') {
+        // Deck to Hand
+        const cardIndex = draggedCard.index;
+        if (cardIndex !== null) {
+          drawCard(cardIndex);
+        }
+      } else if (targetZone === 'discard') {
+        // Deck to Discard
+        const cardIndex = draggedCard.index;
+        if (cardIndex !== null) {
+          discardCard(cardIndex);
+        }
+      }
+    } else if (sourceZone === 'hand') {
+      if (targetZone === 'deck') {
         moveHandToDeck(cardName);
-      } else if (action === 'hand-to-discard') {
+      } else if (targetZone === 'discard') {
         moveHandToDiscard(cardName);
       }
-    }
-  });
-
-  // Hand list hover preview
-  handList.addEventListener('mouseover', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      const imageUrl = hoverable.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
-        updatePreviewPosition(e);
-      }
-    }
-  });
-
-  handList.addEventListener('mouseout', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      cardPreview.classList.remove('visible');
-    }
-  });
-
-  handList.addEventListener('mousemove', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
-    }
-  });
-
-  // Discard list controls (event delegation)
-  discardList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('card-btn')) {
-      const action = e.target.dataset.action;
-      const cardName = e.target.dataset.name;
-
-      if (action === 'discard-to-deck') {
+    } else if (sourceZone === 'discard') {
+      if (targetZone === 'deck') {
         moveDiscardToDeck(cardName);
-      } else if (action === 'discard-to-hand') {
+      } else if (targetZone === 'hand') {
         moveDiscardToHand(cardName);
       }
     }
+  };
+
+  // Add drag event listeners to all card lists
+  [deckList, handList, discardList].forEach(list => {
+    list.addEventListener('dragstart', handleDragStart);
+    list.addEventListener('dragend', handleDragEnd);
   });
 
-  // Discard list hover preview
-  discardList.addEventListener('mouseover', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      const imageUrl = hoverable.dataset.imageUrl;
-      if (imageUrl) {
-        cardPreviewImage.src = imageUrl;
-        cardPreview.classList.add('visible');
-        updatePreviewPosition(e);
-      }
-    }
-  });
-
-  discardList.addEventListener('mouseout', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable) {
-      cardPreview.classList.remove('visible');
-    }
-  });
-
-  discardList.addEventListener('mousemove', (e) => {
-    const hoverable = e.target.closest('.hoverable');
-    if (hoverable && cardPreview.classList.contains('visible')) {
-      updatePreviewPosition(e);
-    }
+  // Add drop zone event listeners to all columns
+  [deckColumn, handColumn, discardColumn].forEach(column => {
+    column.addEventListener('dragover', handleDragOver);
+    column.addEventListener('dragenter', handleDragEnter);
+    column.addEventListener('dragleave', handleDragLeave);
+    column.addEventListener('drop', handleDrop);
   });
 
   // Quick draw button

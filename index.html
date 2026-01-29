@@ -51,24 +51,31 @@
       <input type="text" id="search-input" placeholder="Search cards..." />
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="deck">Deck</button>
-      <button class="tab-btn" data-tab="hand">Hand</button>
-      <button class="tab-btn" data-tab="discard">Discard</button>
-    </div>
+    <!-- Card Lists Container - Three Columns -->
+    <div class="card-lists-container">
+      <div class="card-column" id="deck-column">
+        <div class="column-header" id="deck-drop-zone">
+          <span class="column-title">Deck</span>
+          <span class="column-count" id="deck-header-count">0</span>
+        </div>
+        <div id="deck-list" class="card-list"></div>
+      </div>
 
-    <!-- Card Lists -->
-    <div class="tab-content active" id="deck-tab">
-      <div id="deck-list" class="card-list"></div>
-    </div>
+      <div class="card-column" id="hand-column">
+        <div class="column-header" id="hand-drop-zone">
+          <span class="column-title">Hand</span>
+          <span class="column-count" id="hand-header-count">0</span>
+        </div>
+        <div id="hand-list" class="card-list"></div>
+      </div>
 
-    <div class="tab-content" id="hand-tab">
-      <div id="hand-list" class="card-list"></div>
-    </div>
-
-    <div class="tab-content" id="discard-tab">
-      <div id="discard-list" class="card-list"></div>
+      <div class="card-column" id="discard-column">
+        <div class="column-header" id="discard-drop-zone">
+          <span class="column-title">Discard</span>
+          <span class="column-count" id="discard-header-count">0</span>
+        </div>
+        <div id="discard-list" class="card-list"></div>
+      </div>
     </div>
 
     <!-- Import Deck Section -->
