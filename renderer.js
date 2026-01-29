@@ -1024,8 +1024,8 @@ function setupEventListeners() {
 
     if (!element) return null;
 
-    // Find the column this element belongs to
-    const column = element.closest('.card-column');
+    // Find the column this element belongs to (either card-column or inplay-section)
+    const column = element.closest('.card-column, .inplay-section');
     return column;
   };
 
