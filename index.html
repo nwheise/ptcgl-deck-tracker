@@ -54,7 +54,16 @@
       <input type="text" id="search-input" placeholder="Search cards..." />
     </div>
 
-    <!-- Card Lists Container - Four Columns -->
+    <!-- In Play Section (above columns) -->
+    <div class="inplay-section" id="inplay-column">
+      <div class="column-header" id="inplay-drop-zone">
+        <span class="column-title">In Play</span>
+        <span class="column-count" id="inplay-header-count">0</span>
+      </div>
+      <div id="inplay-list" class="card-list inplay-list"></div>
+    </div>
+
+    <!-- Card Lists Container - Three Columns -->
     <div class="card-lists-container">
       <div class="card-column" id="deck-column">
         <div class="column-header" id="deck-drop-zone">
@@ -70,14 +79,6 @@
           <span class="column-count" id="hand-header-count">0</span>
         </div>
         <div id="hand-list" class="card-list"></div>
-      </div>
-
-      <div class="card-column" id="inplay-column">
-        <div class="column-header" id="inplay-drop-zone">
-          <span class="column-title">In Play</span>
-          <span class="column-count" id="inplay-header-count">0</span>
-        </div>
-        <div id="inplay-list" class="card-list"></div>
       </div>
 
       <div class="card-column" id="discard-column">

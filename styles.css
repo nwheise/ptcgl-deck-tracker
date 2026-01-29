@@ -165,6 +165,36 @@ body {
   border-color: rgba(255, 215, 0, 0.6);
 }
 
+/* In Play Section (above columns) */
+.inplay-section {
+  -webkit-app-region: no-drag;
+  margin: 6px 6px 0 6px;
+  background: rgba(25, 25, 40, 0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(100, 100, 120, 0.2);
+  flex-shrink: 0;
+}
+
+.inplay-section .card-list {
+  max-height: 80px;
+  min-height: 30px;
+  overflow-y: auto;
+}
+
+.inplay-section.drag-over {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.inplay-section.drag-over .column-header {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.inplay-section.drag-over .card-list {
+  border: 2px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
 /* Card Lists Container - Three Columns */
 .card-lists-container {
   -webkit-app-region: no-drag;
