@@ -30,7 +30,6 @@ const deckHeaderCount = document.getElementById('deck-header-count');
 const handHeaderCount = document.getElementById('hand-header-count');
 const discardHeaderCount = document.getElementById('discard-header-count');
 const searchInput = document.getElementById('search-input');
-const drawBtn = document.getElementById('draw-btn');
 const resetBtn = document.getElementById('reset-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
@@ -72,6 +71,33 @@ function init() {
   setupEventListeners();
 }
 
+// Helper function to compare card numbers
+function compareCardNumbers(a, b) {
+  // Try to parse as integers
+  const aNum = parseInt(a);
+  const bNum = parseInt(b);
+
+  // If both are valid integers, compare numerically
+  if (!isNaN(aNum) && !isNaN(bNum)) {
+    return aNum - bNum;
+  }
+
+  // Otherwise compare as strings
+  return a.localeCompare(b);
+}
+
+// Helper function to sort cards by set and number
+function sortBySetAndNumber(cards) {
+  return cards.sort((a, b) => {
+    // First sort by set
+    const setCompare = (a.set || '').localeCompare(b.set || '');
+    if (setCompare !== 0) return setCompare;
+
+    // Then sort by card number
+    return compareCardNumbers(a.number || '0', b.number || '0');
+  });
+}
+
 // Render deck list organized by card type
 function renderDeckList(filter = '') {
   deckList.innerHTML = '';
@@ -85,10 +111,10 @@ function renderDeckList(filter = '') {
     return;
   }
 
-  // Group cards by type
-  const pokemon = filteredDeck.filter(c => c.type === 'Pokemon');
-  const trainers = filteredDeck.filter(c => c.type === 'Trainer');
-  const energy = filteredDeck.filter(c => c.type === 'Energy');
+  // Group cards by type and sort by set and number
+  const pokemon = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Pokemon'));
+  const trainers = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Trainer'));
+  const energy = sortBySetAndNumber(filteredDeck.filter(c => c.type === 'Energy'));
 
   const renderCardItem = (card) => {
     const index = gameState.deck.indexOf(card);
@@ -103,13 +129,6 @@ function renderDeckList(filter = '') {
     const smallImageUrl = dbCard?.images?.small || card.imageUrl || '';
     const largeImageUrl = dbCard?.images?.large || smallImageUrl || '';
 
-    // Make draggable if card is in deck
-    if (card.inDeck > 0) {
-      cardEl.draggable = true;
-      cardEl.dataset.source = 'deck';
-      cardEl.dataset.cardName = card.name;
-      cardEl.dataset.cardIndex = index;
-    }
     cardEl.dataset.imageUrl = largeImageUrl;
 
     cardEl.innerHTML = `
@@ -119,6 +138,14 @@ function renderDeckList(filter = '') {
       </div>
       <span class="card-count">${card.inDeck}/${card.count}</span>
     `;
+
+    // Make draggable if card is in deck (set after innerHTML to ensure it's applied)
+    if (card.inDeck > 0) {
+      cardEl.setAttribute('draggable', 'true');
+      cardEl.dataset.source = 'deck';
+      cardEl.dataset.cardName = card.name;
+      cardEl.dataset.cardIndex = index;
+    }
 
     return cardEl;
   };
@@ -164,12 +191,10 @@ function renderHandList() {
     handMap[card.name].indices.push(idx);
   });
 
-  Object.values(handMap).forEach(card => {
+  // Sort hand cards by set and number
+  sortBySetAndNumber(Object.values(handMap)).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
-    cardEl.draggable = true;
-    cardEl.dataset.source = 'hand';
-    cardEl.dataset.cardName = card.name;
 
     // Get image URLs from card database if available
     const dbCard = cardDatabase.getCardById(card.id);
@@ -184,6 +209,11 @@ function renderHandList() {
       </div>
       <span class="card-count">${card.handCount}</span>
     `;
+
+    // Set draggable after innerHTML
+    cardEl.setAttribute('draggable', 'true');
+    cardEl.dataset.source = 'hand';
+    cardEl.dataset.cardName = card.name;
 
     handList.appendChild(cardEl);
   });
@@ -208,12 +238,10 @@ function renderDiscardList() {
     discardMap[card.name].indices.push(idx);
   });
 
-  Object.values(discardMap).forEach(card => {
+  // Sort discard cards by set and number
+  sortBySetAndNumber(Object.values(discardMap)).forEach(card => {
     const cardEl = document.createElement('div');
     cardEl.className = 'card-item';
-    cardEl.draggable = true;
-    cardEl.dataset.source = 'discard';
-    cardEl.dataset.cardName = card.name;
 
     // Get image URLs from card database if available
     const dbCard = cardDatabase.getCardById(card.id);
@@ -228,6 +256,11 @@ function renderDiscardList() {
       </div>
       <span class="card-count">${card.discardCount}</span>
     `;
+
+    // Set draggable after innerHTML
+    cardEl.setAttribute('draggable', 'true');
+    cardEl.dataset.source = 'discard';
+    cardEl.dataset.cardName = card.name;
 
     discardList.appendChild(cardEl);
   });
@@ -375,7 +408,9 @@ function openDeckBuilder() {
     name: card.name,
     count: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   currentFilter = 'all';
@@ -414,10 +449,10 @@ function renderBuilderDeck() {
     return;
   }
 
-  // Group by type
-  const pokemon = builderDeck.filter(c => c.type === 'Pokemon');
-  const trainers = builderDeck.filter(c => c.type === 'Trainer');
-  const energy = builderDeck.filter(c => c.type === 'Energy');
+  // Group by type and sort by set and number
+  const pokemon = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Pokemon'));
+  const trainers = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Trainer'));
+  const energy = sortBySetAndNumber(builderDeck.filter(c => c.type === 'Energy'));
 
   const renderGroup = (cards, label) => {
     if (cards.length === 0) return;
@@ -528,7 +563,9 @@ function addCardToDeck(cardId) {
       name: card.name,
       count: 1,
       type: cardType,
-      imageUrl: card.images.small || ''
+      imageUrl: card.images.small || '',
+      set: card.set || '',
+      number: card.number || ''
     });
   }
 
@@ -610,7 +647,9 @@ function saveDeck() {
     count: card.count,
     inDeck: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   gameState.hand = [];
@@ -699,7 +738,9 @@ function parseDeckText(text) {
         name: card.name,
         count: count,
         type: cardType,
-        imageUrl: card.images.small || ''
+        imageUrl: card.images.small || '',
+        set: card.set || '',
+        number: card.number || ''
       });
     }
   }
@@ -742,7 +783,9 @@ function importDeck() {
     count: card.count,
     inDeck: card.count,
     type: card.type,
-    imageUrl: card.imageUrl
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
   }));
 
   gameState.hand = [];
@@ -803,6 +846,7 @@ function setupEventListeners() {
 
   // Drag start handler
   const handleDragStart = (e) => {
+    // Find the card-item element (could be target itself or a parent)
     const cardItem = e.target.closest('.card-item');
     if (!cardItem || !cardItem.draggable) return;
 
@@ -814,11 +858,15 @@ function setupEventListeners() {
     dragSource = cardItem.dataset.source;
 
     cardItem.classList.add('dragging');
+
+    // Use custom data type to prevent text drops elsewhere
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', cardItem.dataset.cardName);
+    e.dataTransfer.setData('application/x-pokemon-card', cardItem.dataset.cardName);
 
     // Hide tooltip while dragging
     cardPreview.classList.remove('visible');
+
+    console.log('Drag started:', draggedCard);
   };
 
   // Drag end handler
@@ -827,6 +875,8 @@ function setupEventListeners() {
     if (cardItem) {
       cardItem.classList.remove('dragging');
     }
+
+    console.log('Drag ended');
     draggedCard = null;
     dragSource = null;
 
@@ -838,44 +888,52 @@ function setupEventListeners() {
 
   // Drag over handler (allow drop)
   const handleDragOver = (e) => {
+    if (!draggedCard) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
   };
 
   // Drag enter handler
   const handleDragEnter = (e) => {
+    if (!draggedCard) return;
     e.preventDefault();
-    const column = e.target.closest('.card-column');
-    if (column && draggedCard) {
-      const targetZone = column.id.replace('-column', '');
-      // Only show drag-over if it's a valid drop target
-      if (targetZone !== dragSource) {
-        column.classList.add('drag-over');
-      }
+
+    const column = e.currentTarget;
+    const targetZone = column.id.replace('-column', '');
+
+    // Only show drag-over if it's a valid drop target (different from source)
+    if (targetZone !== dragSource) {
+      column.classList.add('drag-over');
     }
   };
 
   // Drag leave handler
   const handleDragLeave = (e) => {
-    const column = e.target.closest('.card-column');
-    if (column) {
-      // Check if we're leaving to a child element
-      const relatedColumn = e.relatedTarget?.closest?.('.card-column');
-      if (column !== relatedColumn) {
-        column.classList.remove('drag-over');
-      }
+    const column = e.currentTarget;
+
+    // Only remove drag-over if we're actually leaving the column
+    // (not just moving to a child element)
+    if (!column.contains(e.relatedTarget)) {
+      column.classList.remove('drag-over');
     }
   };
 
   // Drop handler
   const handleDrop = (e) => {
     e.preventDefault();
-    const column = e.target.closest('.card-column');
-    if (!column || !draggedCard) return;
+    e.stopPropagation();
 
+    console.log('Drop event fired, draggedCard:', draggedCard);
+
+    if (!draggedCard) return;
+
+    const column = e.currentTarget;
     const targetZone = column.id.replace('-column', '');
     const sourceZone = draggedCard.source;
     const cardName = draggedCard.name;
+
+    console.log('Moving card from', sourceZone, 'to', targetZone);
 
     // Remove drag-over class
     column.classList.remove('drag-over');
@@ -888,12 +946,14 @@ function setupEventListeners() {
       if (targetZone === 'hand') {
         // Deck to Hand
         const cardIndex = draggedCard.index;
+        console.log('Drawing card at index:', cardIndex);
         if (cardIndex !== null) {
           drawCard(cardIndex);
         }
       } else if (targetZone === 'discard') {
         // Deck to Discard
         const cardIndex = draggedCard.index;
+        console.log('Discarding card at index:', cardIndex);
         if (cardIndex !== null) {
           discardCard(cardIndex);
         }
@@ -915,20 +975,17 @@ function setupEventListeners() {
 
   // Add drag event listeners to all card lists
   [deckList, handList, discardList].forEach(list => {
-    list.addEventListener('dragstart', handleDragStart);
-    list.addEventListener('dragend', handleDragEnd);
+    list.addEventListener('dragstart', handleDragStart, false);
+    list.addEventListener('dragend', handleDragEnd, false);
   });
 
   // Add drop zone event listeners to all columns
   [deckColumn, handColumn, discardColumn].forEach(column => {
-    column.addEventListener('dragover', handleDragOver);
-    column.addEventListener('dragenter', handleDragEnter);
-    column.addEventListener('dragleave', handleDragLeave);
-    column.addEventListener('drop', handleDrop);
+    column.addEventListener('dragover', handleDragOver, false);
+    column.addEventListener('dragenter', handleDragEnter, false);
+    column.addEventListener('dragleave', handleDragLeave, false);
+    column.addEventListener('drop', handleDrop, false);
   });
-
-  // Quick draw button
-  drawBtn.addEventListener('click', quickDraw);
 
   // Reset button
   resetBtn.addEventListener('click', resetGame);
@@ -1052,12 +1109,6 @@ document.addEventListener('keydown', (e) => {
     if (importDeckModal.classList.contains('active')) {
       closeImportDeck();
     }
-  }
-
-  // Space: Quick draw (when not typing)
-  if (e.code === 'Space' && !e.target.matches('input, textarea')) {
-    e.preventDefault();
-    quickDraw();
   }
 
   // R: Reset
