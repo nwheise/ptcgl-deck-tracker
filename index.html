@@ -15,7 +15,7 @@
         <span>Deck Tracker</span>
       </div>
       <div class="controls">
-<button id="minimize-btn" class="control-btn" title="Minimize">−</button>
+        <button id="minimize-btn" class="control-btn" title="Minimize">−</button>
         <button id="close-btn" class="control-btn" title="Close">×</button>
       </div>
     </div>
@@ -23,30 +23,9 @@
     <!-- Stats Summary -->
     <div class="stats">
       <div class="stat-item">
-        <span class="stat-label">Deck:</span>
-        <span id="deck-count" class="stat-value">60</span>
+        <span class="stat-label">Cards:</span>
+        <span id="deck-count" class="stat-value">0</span>
       </div>
-      <div class="stat-item">
-        <span class="stat-label">Hand:</span>
-        <span id="hand-count" class="stat-value">0</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">In Play:</span>
-        <span id="inplay-count" class="stat-value">0</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Discard:</span>
-        <span id="discard-count" class="stat-value">0</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Prizes:</span>
-        <span id="prize-count" class="stat-value">6</span>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="actions">
-      <button id="reset-btn" class="action-btn secondary">Reset Game</button>
     </div>
 
     <!-- Search Bar -->
@@ -54,46 +33,16 @@
       <input type="text" id="search-input" placeholder="Search cards..." />
     </div>
 
-    <!-- In Play Section (above columns) -->
-    <div class="inplay-section" id="inplay-column">
-      <div class="column-header" id="inplay-drop-zone">
-        <span class="column-title">In Play</span>
-        <span class="column-count" id="inplay-header-count">0</span>
-      </div>
-      <div id="inplay-list" class="card-list inplay-list"></div>
+    <!-- Single Card List -->
+    <div class="deck-section">
+      <div id="deck-list" class="card-list"></div>
     </div>
 
-    <!-- Card Lists Container - Three Columns -->
-    <div class="card-lists-container">
-      <div class="card-column" id="deck-column">
-        <div class="column-header" id="deck-drop-zone">
-          <span class="column-title">Deck</span>
-          <span class="column-count" id="deck-header-count">0</span>
-        </div>
-        <div id="deck-list" class="card-list"></div>
-      </div>
-
-      <div class="card-column" id="hand-column">
-        <div class="column-header" id="hand-drop-zone">
-          <span class="column-title">Hand</span>
-          <span class="column-count" id="hand-header-count">0</span>
-        </div>
-        <div id="hand-list" class="card-list"></div>
-      </div>
-
-      <div class="card-column" id="discard-column">
-        <div class="column-header" id="discard-drop-zone">
-          <span class="column-title">Discard</span>
-          <span class="column-count" id="discard-header-count">0</span>
-        </div>
-        <div id="discard-list" class="card-list"></div>
-      </div>
-    </div>
-
-    <!-- Import Deck Section -->
+    <!-- Action Buttons -->
     <div class="import-section">
       <button id="import-btn" class="action-btn secondary">Build Deck</button>
       <button id="import-text-btn" class="action-btn secondary">Import Deck</button>
+      <button id="history-btn" class="action-btn secondary">History</button>
     </div>
   </div>
 
@@ -112,6 +61,19 @@
       <div class="modal-buttons">
         <button id="import-deck-btn" class="action-btn">Import</button>
         <button id="cancel-import-btn" class="action-btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck History Modal -->
+  <div id="deck-history-modal" class="modal">
+    <div class="modal-content deck-history">
+      <div class="deck-history-header">
+        <h3>Deck History</h3>
+      </div>
+      <div id="deck-history-list" class="deck-history-list"></div>
+      <div class="modal-buttons">
+        <button id="close-history-btn" class="action-btn secondary">Close</button>
       </div>
     </div>
   </div>
