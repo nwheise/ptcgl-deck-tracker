@@ -20,10 +20,12 @@
 
 ## First Launch
 
-When the app starts, you'll see an overlay window with three columns (Deck, Hand, Discard). The overlay is:
+When the app starts, you'll see an overlay window displaying a deck list. The overlay is:
 - **Draggable** - Drag the red header bar to move it
 - **Resizable** - Drag the edges to resize
 - **Always on top** - Stays above other windows, including fullscreen games
+
+You'll see "No Deck Loaded" at the top. Click **Build Deck** or **Import Deck** to get started.
 
 ## Building a Deck
 
@@ -32,8 +34,11 @@ When the app starts, you'll see an overlay window with three columns (Deck, Hand
 3. Use filter buttons to narrow by type: All, Pokemon, Trainer, Energy
 4. Toggle **Standard Only** to show only Standard-legal cards
 5. Click **Add** next to a card to add it to your deck
-6. Adjust quantities with the **+/-** buttons
-7. Click **Save Deck** to start tracking
+   - Enforces 4-card limit (except Basic Energy which is unlimited)
+   - Maximum 60 cards per deck
+6. Adjust quantities with the **+/-** buttons in your current deck
+7. Optionally enter a **Deck Name** (or leave blank for auto-generated name from top 3 Pokemon)
+8. Click **Save Deck** - your deck is automatically saved to history
 
 ## Importing a Deck from Pokemon TCG Live
 
@@ -55,54 +60,57 @@ When the app starts, you'll see an overlay window with three columns (Deck, Hand
    4 Basic {M} Energy SVE 8
    4 Basic {P} Energy SVE 5
    ```
-4. Click **Import**
+4. Optionally enter a **Deck Name** (or leave blank for auto-generated name from top 3 Pokemon)
+5. Click **Import** - your deck is automatically saved to history
 
 The format requires the set code and card number (e.g., `SSP 72`) to match cards correctly.
 
-## Using the Tracker
+## Using the Deck Viewer
 
-### Three-Column Layout
+### Deck Display
 
-| Column | Purpose |
-|--------|---------|
-| **Deck** | Cards remaining in your deck (grouped by type) |
-| **Hand** | Cards currently in your hand |
-| **Discard** | Cards in your discard pile |
+The main overlay shows:
+- **Deck Name** - At the top, shows current deck name (custom or auto-generated)
+- **Deck List** - Cards organized by type with thumbnails and counts
+- **Stats** - Total card count at the bottom
 
-### Moving Cards
+### Deck List Organization
 
-**Drag and drop** cards between columns:
-- Drag from **Deck** to **Hand** = Draw a card
-- Drag from **Deck** to **Discard** = Discard from deck
-- Drag from **Hand** to **Discard** = Discard from hand
-- Drag from **Hand** to **Deck** = Return to deck
-- Drag from **Discard** to **Hand** = Recover to hand
-- Drag from **Discard** to **Deck** = Shuffle back into deck
+Cards are grouped by type:
+- **Pokemon** - All Pokemon cards sorted by set and card number
+- **Trainer** - All Trainer cards sorted by set and card number
+- **Energy** - All Energy cards sorted by set and card number
+
+Each group shows the total count (e.g., "Pokemon (18)").
 
 ### Card Preview
 
-Hover over any card to see its full image in a tooltip.
+Hover over any card thumbnail to see its full image in a tooltip.
 
-### Stats Bar
+### Search
 
-| Stat | Meaning |
-|------|---------|
-| **Deck** | Total cards remaining in deck |
-| **Hand** | Number of cards in hand |
-| **Discard** | Number of cards in discard pile |
-| **Prizes** | Prize cards remaining (starts at 6) |
+Use the search bar at the top to filter cards by name. The deck list updates in real-time.
 
-### Reset Game
+### Deck History
 
-Click **Reset Game** to restore all cards to the deck and clear hand/discard.
+Click **Deck History** to manage your saved decks:
+
+| Action | Description |
+|--------|-------------|
+| **Edit** | Opens the deck in Build Deck UI for full editing |
+| **Load** | Loads the deck into the main view |
+| **Delete** | Removes the deck from history |
+
+- History automatically saves your last 10 decks
+- Duplicate decks (same cards) are automatically removed
+- Each deck shows name, card count, and timestamp
 
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+D` / `Cmd+Shift+D` | Show/hide overlay |
-| `Ctrl+R` | Reset game |
-| `Escape` | Close any open modal |
+| `Escape` | Close any open modal (Build Deck, Import Deck, Deck History) |
 
 ## Troubleshooting
 
@@ -126,7 +134,7 @@ The app uses `screen-saver` level always-on-top which should work even with excl
 - Use `Ctrl+Shift+D` to quickly hide/show it
 - Resize it smaller if needed
 
-### Drag and drop not working
-- Make sure you're clicking on a card item (not empty space)
-- Cards with 0 remaining in deck cannot be dragged from the Deck column
-- The drag starts after moving 5+ pixels (to prevent accidental drags)
+### Card previews not showing
+- Make sure you're hovering over the card thumbnail image
+- Images load from the pokemon-tcg-data submodule
+- Some older or promo cards may not have images available
