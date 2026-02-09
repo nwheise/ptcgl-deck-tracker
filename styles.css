@@ -73,12 +73,31 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Deck Name Display */
+.deck-name-display {
+  background: rgba(30, 30, 45, 0.9);
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  flex-shrink: 0;
+}
+
+#current-deck-name {
+  color: #ffd700;
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Stats */
 .stats {
   background: rgba(30, 30, 45, 0.8);
   padding: 6px 10px;
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   border-bottom: 1px solid rgba(255, 215, 0, 0.2);
   flex-shrink: 0;
 }
@@ -165,89 +184,13 @@ body {
   border-color: rgba(255, 215, 0, 0.6);
 }
 
-/* In Play Section (above columns) */
-.inplay-section {
+/* Deck Section */
+.deck-section {
   -webkit-app-region: no-drag;
-  margin: 6px 6px 0 6px;
-  background: rgba(25, 25, 40, 0.5);
-  border-radius: 6px;
-  border: 1px solid rgba(100, 100, 120, 0.2);
-  flex-shrink: 0;
-}
-
-.inplay-section .card-list {
-  max-height: 80px;
-  min-height: 30px;
-  overflow-y: auto;
-}
-
-.inplay-section.drag-over {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.inplay-section.drag-over .column-header {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.6);
-}
-
-.inplay-section.drag-over .card-list {
-  border: 2px dashed rgba(59, 130, 246, 0.5);
-  border-radius: 4px;
-}
-
-/* Card Lists Container - Three Columns */
-.card-lists-container {
-  -webkit-app-region: no-drag;
-  display: flex;
   flex: 1;
-  gap: 6px;
-  padding: 6px;
   overflow: hidden;
   min-height: 0;
-}
-
-.card-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: rgba(25, 25, 40, 0.5);
-  border-radius: 6px;
-  border: 1px solid rgba(100, 100, 120, 0.2);
-  overflow: hidden;
-  -webkit-app-region: no-drag;
-  position: relative;
-}
-
-.column-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  background: rgba(30, 30, 45, 0.8);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-  flex-shrink: 0;
-}
-
-.column-header.drag-over {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.6);
-}
-
-.column-title {
-  color: #ffd700;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.column-count {
-  background: rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: bold;
+  padding: 6px;
 }
 
 /* Card List */
@@ -258,7 +201,7 @@ body {
   gap: 2px;
   padding: 4px;
   overflow-y: auto;
-  flex: 1;
+  height: 100%;
   min-height: 0;
   position: relative;
   z-index: 1;
@@ -273,7 +216,7 @@ body {
   align-items: center;
   border: 1px solid rgba(100, 100, 120, 0.3);
   transition: all 0.2s;
-  cursor: grab;
+  cursor: default;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
   user-select: none;
@@ -282,23 +225,6 @@ body {
 .card-item:hover {
   background: rgba(50, 50, 70, 0.8);
   border-color: rgba(255, 215, 0, 0.3);
-}
-
-.card-item.drawn {
-  opacity: 0.5;
-}
-
-.card-item.dragging {
-  opacity: 0.3;
-  cursor: grabbing;
-}
-
-/* Custom drag clone for transparent window compatibility */
-.drag-clone {
-  background: rgba(40, 40, 60, 0.95);
-  border: 2px solid rgba(255, 215, 0, 0.6);
-  border-radius: 4px;
-  cursor: grabbing;
 }
 
 .card-info {
@@ -365,31 +291,6 @@ body {
   border-radius: 2px;
 }
 
-/* Drag and Drop Styles */
-.card-column.drag-over {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.card-column.drag-over .column-header {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.6);
-}
-
-.card-column.drag-over .card-list {
-  border: 2px dashed rgba(59, 130, 246, 0.5);
-  border-radius: 4px;
-}
-
-.drop-indicator {
-  color: rgba(59, 130, 246, 0.8);
-  font-size: 10px;
-  text-align: center;
-  padding: 8px;
-  border: 1px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 4px;
-  margin: 4px;
-}
-
 /* Import Section */
 .import-section {
   -webkit-app-region: no-drag;
@@ -445,6 +346,36 @@ body {
 }
 
 #deck-import-text:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.import-deck-name-section {
+  margin-bottom: 12px;
+}
+
+.import-deck-name-section label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+#import-deck-name {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(40, 40, 60, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+}
+
+#import-deck-name::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#import-deck-name:focus {
   outline: none;
   border-color: rgba(255, 215, 0, 0.6);
 }
@@ -506,26 +437,30 @@ body {
 /* Scrollbar */
 .card-list::-webkit-scrollbar,
 .search-results::-webkit-scrollbar,
-.current-deck-list::-webkit-scrollbar {
+.current-deck-list::-webkit-scrollbar,
+.deck-history-list::-webkit-scrollbar {
   width: 8px;
 }
 
 .card-list::-webkit-scrollbar-track,
 .search-results::-webkit-scrollbar-track,
-.current-deck-list::-webkit-scrollbar-track {
+.current-deck-list::-webkit-scrollbar-track,
+.deck-history-list::-webkit-scrollbar-track {
   background: rgba(30, 30, 45, 0.5);
 }
 
 .card-list::-webkit-scrollbar-thumb,
 .search-results::-webkit-scrollbar-thumb,
-.current-deck-list::-webkit-scrollbar-thumb {
+.current-deck-list::-webkit-scrollbar-thumb,
+.deck-history-list::-webkit-scrollbar-thumb {
   background: rgba(255, 215, 0, 0.3);
   border-radius: 4px;
 }
 
 .card-list::-webkit-scrollbar-thumb:hover,
 .search-results::-webkit-scrollbar-thumb:hover,
-.current-deck-list::-webkit-scrollbar-thumb:hover {
+.current-deck-list::-webkit-scrollbar-thumb:hover,
+.deck-history-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 215, 0, 0.5);
 }
 
@@ -796,6 +731,37 @@ body {
   padding: 8px;
 }
 
+/* Deck Builder Name Section */
+.builder-deck-name-section {
+  margin-bottom: 12px;
+}
+
+.builder-deck-name-section label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+#builder-deck-name {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(40, 40, 60, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+}
+
+#builder-deck-name::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#builder-deck-name:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
 /* Deck builder specific deck-group styles */
 .current-deck-list .deck-group {
   margin-bottom: 10px;
@@ -900,4 +866,104 @@ body {
 .result-card-image:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+/* ========== Deck History Styles ========== */
+
+.modal-content.deck-history {
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.deck-history-header {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.deck-history-header h3 {
+  margin: 0;
+}
+
+.deck-history-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  min-height: 100px;
+  max-height: 400px;
+}
+
+.history-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(40, 40, 60, 0.5);
+  border: 1px solid rgba(100, 100, 120, 0.3);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+
+.history-entry:hover {
+  background: rgba(50, 50, 70, 0.7);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.history-entry:last-child {
+  margin-bottom: 0;
+}
+
+.history-entry-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-entry-name {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-entry-meta {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.history-entry-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.history-edit-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.history-load-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.history-delete-btn {
+  padding: 5px 8px;
+  font-size: 11px;
+  flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
 }

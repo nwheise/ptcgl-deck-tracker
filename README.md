@@ -1,27 +1,26 @@
 # Pokemon TCG Live Deck Tracker
 
-A desktop overlay application that helps you track your deck, hand, and discard pile during Pokemon TCG Live games.
+A desktop overlay application that helps you view and manage your Pokemon TCG Live decks.
 
 ## Features
 
 - **Always-on-Top Overlay** - Semi-transparent window that stays above your game (even fullscreen)
-- **Three-Column Layout** - View Deck, Hand, and Discard piles simultaneously
-- **Drag & Drop** - Move cards between zones by dragging
-- **Deck Builder** - Search the card database and build decks visually
+- **Deck List View** - View all cards in your deck organized by type (Pokemon, Trainer, Energy)
+- **Deck Builder** - Search the card database and build decks visually with card previews
 - **Deck Import** - Paste deck lists exported from Pokemon TCG Live
+- **Deck History** - Automatically saves your last 10 decks with Edit, Load, and Delete functions
+- **Custom Deck Names** - Name your decks or use auto-generated names based on key Pokemon
 - **Card Preview** - Hover over any card to see its full image
-- **Search & Filter** - Quickly find cards in your deck
-- **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy
+- **Search & Filter** - Quickly find cards in your deck or when building
+- **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy with set/number sorting
 - **Draggable & Resizable** - Position the overlay wherever works best
 
 ## Screenshot
 
-The overlay displays three columns:
-- **Deck** - Cards remaining in your deck with counts (e.g., "2/4" means 2 of 4 copies still in deck)
-- **Hand** - Cards currently in your hand
-- **Discard** - Cards that have been discarded
-
-Stats bar shows total counts for Deck, Hand, Discard, and Prizes.
+The overlay displays:
+- **Deck Name** - Current deck name at the top
+- **Deck List** - All cards organized by type with card counts and thumbnails
+- **Stats Bar** - Total card count display
 
 ## Installation
 
@@ -38,11 +37,12 @@ npm start
 ### Building a Deck
 
 1. Click **Build Deck** at the bottom of the overlay
-2. Search for cards by name
-3. Filter by type (Pokemon, Trainer, Energy) or Standard-legal only
-4. Click **Add** to add cards to your deck
-5. Use **+/-** buttons to adjust quantities
-6. Click **Save Deck** when done
+2. Search for cards by name (at least 2 characters)
+3. Filter by type (All, Pokemon, Trainer, Energy) or toggle **Standard Only**
+4. Click **Add** to add cards to your deck (respects 4-card limit, unlimited Basic Energy)
+5. Use **+/-** buttons to adjust quantities in your current deck
+6. Optionally enter a **Deck Name** or leave blank for auto-generated name
+7. Click **Save Deck** when done - deck is automatically saved to history
 
 ### Importing a Deck from Pokemon TCG Live
 
@@ -62,23 +62,30 @@ npm start
    4 Basic {M} Energy SVE 8
    ...
    ```
-4. Click **Import**
+4. Optionally enter a **Deck Name** or leave blank for auto-generated name
+5. Click **Import** - deck is automatically saved to history
 
-### Tracking Cards During a Game
+### Managing Deck History
 
-- **Drag cards** between Deck, Hand, and Discard columns
-- Cards maintain their counts (dragging from Deck decreases deck count)
-- Hover over any card to see the full card image
-- Use the search bar to filter cards in the deck
-- Click **Reset Game** to restore all cards to the deck
+1. Click **Deck History** to view your saved decks
+2. **Edit** - Opens the deck in Build Deck UI for full editing
+3. **Load** - Loads the deck into the main view
+4. **Delete** - Removes the deck from history
+5. History automatically keeps your last 10 decks and removes duplicates
+
+### Viewing Your Deck
+
+- Hover over any card thumbnail to see the full card image
+- Use the search bar to filter cards by name
+- Cards are organized by type: Pokemon, Trainer, Energy
+- Each section shows the total count (e.g., "Pokemon (18)")
 
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac) | Toggle overlay visibility |
-| `Ctrl+R` | Reset game |
-| `Escape` | Close modals |
+| `Escape` | Close open modals (Build Deck, Import Deck, Deck History) |
 
 ## Project Structure
 
@@ -108,19 +115,21 @@ To update the card database, pull the latest from the pokemon-tcg-data submodule
 ## Technical Details
 
 - Built with [Electron](https://www.electronjs.org/) v35
-- Uses local card data from Pokemon TCG Data repository
+- Uses local card data from Pokemon TCG Data repository as a git submodule
 - Transparent, frameless overlay window with `screen-saver` level always-on-top
-- Custom mouse-based drag & drop (works with transparent windows)
+- Card database with efficient search by name, type, and Standard legality
+- Deck history stored in localStorage (last 10 decks, auto-deduplication)
 - Works with the game in any mode including exclusive fullscreen
 
 ## Legal
 
-This is a deck tracking tool similar to note-taking during paper play. It does not:
+This is a deck viewing and management tool for organizing your Pokemon TCG Live decks. It does not:
 - Read game memory
 - Inject code into the game
 - Automate any gameplay
+- Interact with Pokemon TCG Live in any way
 
-Always check Pokemon TCG Live's Terms of Service for any restrictions on third-party tools.
+Card data is sourced from the public Pokemon TCG Data repository. Always check Pokemon TCG Live's Terms of Service for any restrictions on third-party tools.
 
 ## License
 
