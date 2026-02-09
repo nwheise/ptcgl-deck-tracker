@@ -73,6 +73,25 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Deck Name Display */
+.deck-name-display {
+  background: rgba(30, 30, 45, 0.9);
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  flex-shrink: 0;
+}
+
+#current-deck-name {
+  color: #ffd700;
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Stats */
 .stats {
   background: rgba(30, 30, 45, 0.8);
@@ -327,6 +346,36 @@ body {
 }
 
 #deck-import-text:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.import-deck-name-section {
+  margin-bottom: 12px;
+}
+
+.import-deck-name-section label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+#import-deck-name {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(40, 40, 60, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+}
+
+#import-deck-name::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#import-deck-name:focus {
   outline: none;
   border-color: rgba(255, 215, 0, 0.6);
 }
@@ -682,6 +731,37 @@ body {
   padding: 8px;
 }
 
+/* Deck Builder Name Section */
+.builder-deck-name-section {
+  margin-bottom: 12px;
+}
+
+.builder-deck-name-section label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+#builder-deck-name {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(40, 40, 60, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+}
+
+#builder-deck-name::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#builder-deck-name:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
 /* Deck builder specific deck-group styles */
 .current-deck-list .deck-group {
   margin-bottom: 10px;
@@ -861,16 +941,29 @@ body {
   gap: 6px;
   flex-shrink: 0;
   margin-left: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.history-edit-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
 }
 
 .history-load-btn {
   padding: 5px 12px;
   font-size: 11px;
   flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
 }
 
 .history-delete-btn {
   padding: 5px 8px;
   font-size: 11px;
   flex: none;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
 }

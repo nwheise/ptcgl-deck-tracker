@@ -20,6 +20,11 @@
       </div>
     </div>
 
+    <!-- Deck Name Display -->
+    <div class="deck-name-display">
+      <span id="current-deck-name">No Deck Loaded</span>
+    </div>
+
     <!-- Stats Summary -->
     <div class="stats">
       <div class="stat-item">
@@ -57,6 +62,10 @@
 1 Togekiss SSP 72
 4 Gholdengo ex PAR 139
 ..."></textarea>
+      <div class="import-deck-name-section">
+        <label for="import-deck-name">Deck Name (optional):</label>
+        <input type="text" id="import-deck-name" placeholder="Leave blank for auto-generated name" />
+      </div>
       <div id="import-error" class="import-error"></div>
       <div class="modal-buttons">
         <button id="import-deck-btn" class="action-btn">Import</button>
@@ -120,6 +129,12 @@
           <button id="clear-deck-btn" class="small-btn">Clear</button>
         </div>
         <div id="current-deck-list" class="current-deck-list"></div>
+      </div>
+
+      <!-- Deck Name -->
+      <div class="builder-deck-name-section">
+        <label for="builder-deck-name">Deck Name (optional):</label>
+        <input type="text" id="builder-deck-name" placeholder="Leave blank for auto-generated name" />
       </div>
 
       <!-- Modal Actions -->

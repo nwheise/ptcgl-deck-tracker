@@ -6,6 +6,7 @@ cardDatabase.load();
 
 // Deck State - simplified to just the card list
 let deck = [];
+let currentDeckName = 'No Deck Loaded';
 
 // Deck Builder State
 let builderDeck = [];
@@ -20,6 +21,7 @@ const MAX_HISTORY = 10;
 // DOM Elements
 const deckList = document.getElementById('deck-list');
 const deckCountEl = document.getElementById('deck-count');
+const currentDeckNameEl = document.getElementById('current-deck-name');
 const searchInput = document.getElementById('search-input');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
@@ -44,6 +46,7 @@ const cardPreviewImage = document.getElementById('card-preview-image');
 const importTextBtn = document.getElementById('import-text-btn');
 const importDeckModal = document.getElementById('import-deck-modal');
 const deckImportText = document.getElementById('deck-import-text');
+const importDeckName = document.getElementById('import-deck-name');
 const importError = document.getElementById('import-error');
 const importDeckBtn = document.getElementById('import-deck-btn');
 const cancelImportBtn = document.getElementById('cancel-import-btn');
@@ -53,10 +56,14 @@ const deckHistoryModal = document.getElementById('deck-history-modal');
 const deckHistoryList = document.getElementById('deck-history-list');
 const closeHistoryBtn = document.getElementById('close-history-btn');
 
+// Deck Builder Name Input
+const builderDeckName = document.getElementById('builder-deck-name');
+
 // Initialize UI
 function init() {
   renderDeckList();
   updateStats();
+  updateDeckNameDisplay();
   setupEventListeners();
 }
 
@@ -154,6 +161,11 @@ function updateStats() {
   deckCountEl.textContent = totalCards;
 }
 
+// Update deck name display
+function updateDeckNameDisplay() {
+  currentDeckNameEl.textContent = currentDeckName;
+}
+
 // ========== Deck History Functions ==========
 
 function getDeckHistory() {
@@ -165,15 +177,20 @@ function getDeckHistory() {
   }
 }
 
-function saveDeckToHistory(deckCards) {
+function saveDeckToHistory(deckCards, customName = null) {
   if (deckCards.length === 0) return;
 
   const history = getDeckHistory();
 
-  // Create a summary name from the deck's key Pokemon
-  const pokemonCards = deckCards.filter(c => c.type === 'Pokemon');
-  const topCards = pokemonCards.slice(0, 3).map(c => c.name);
-  const deckName = topCards.length > 0 ? topCards.join(', ') : 'Unnamed Deck';
+  // Use custom name if provided, otherwise create a summary name from the deck's key Pokemon
+  let deckName;
+  if (customName && customName.trim()) {
+    deckName = customName.trim();
+  } else {
+    const pokemonCards = deckCards.filter(c => c.type === 'Pokemon');
+    const topCards = pokemonCards.slice(0, 3).map(c => c.name);
+    deckName = topCards.length > 0 ? topCards.join(', ') : 'Unnamed Deck';
+  }
 
   const totalCards = deckCards.reduce((sum, c) => sum + c.count, 0);
 
@@ -223,8 +240,10 @@ function loadDeckFromHistory(index) {
     number: card.number || ''
   }));
 
+  currentDeckName = entry.name;
   renderDeckList();
   updateStats();
+  updateDeckNameDisplay();
   closeHistory();
 }
 
@@ -267,19 +286,111 @@ function renderHistoryList() {
       hour: '2-digit', minute: '2-digit'
     });
 
-    entryEl.innerHTML = `
-      <div class="history-entry-info">
-        <div class="history-entry-name">${entry.name}</div>
-        <div class="history-entry-meta">${entry.totalCards} cards - ${dateStr} ${timeStr}</div>
-      </div>
-      <div class="history-entry-actions">
-        <button class="action-btn history-load-btn" data-index="${index}">Load</button>
-        <button class="action-btn secondary history-delete-btn" data-index="${index}">X</button>
-      </div>
+    // Create info section
+    const infoEl = document.createElement('div');
+    infoEl.className = 'history-entry-info';
+    infoEl.innerHTML = `
+      <div class="history-entry-name">${entry.name}</div>
+      <div class="history-entry-meta">${entry.totalCards} cards - ${dateStr} ${timeStr}</div>
     `;
+
+    // Create actions section
+    const actionsEl = document.createElement('div');
+    actionsEl.className = 'history-entry-actions';
+
+    // Create Edit button
+    const editBtn = document.createElement('button');
+    editBtn.className = 'action-btn history-edit-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = () => {
+      console.log('Edit button clicked for index:', index);
+      editDeckFromHistory(index);
+    };
+
+    // Create Load button
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'action-btn history-load-btn';
+    loadBtn.textContent = 'Load';
+    loadBtn.onclick = () => {
+      console.log('Load button clicked for index:', index);
+      loadDeckFromHistory(index);
+    };
+
+    // Create Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'action-btn secondary history-delete-btn';
+    deleteBtn.textContent = 'X';
+    deleteBtn.onclick = () => {
+      console.log('Delete button clicked for index:', index);
+      deleteDeckFromHistory(index);
+    };
+
+    actionsEl.appendChild(editBtn);
+    actionsEl.appendChild(loadBtn);
+    actionsEl.appendChild(deleteBtn);
+
+    entryEl.appendChild(infoEl);
+    entryEl.appendChild(actionsEl);
 
     deckHistoryList.appendChild(entryEl);
   });
+
+  console.log('History list rendered with', history.length, 'entries');
+}
+
+function renameDeckInHistory(index, newName) {
+  const history = getDeckHistory();
+  if (index < 0 || index >= history.length) return;
+
+  if (!newName || !newName.trim()) {
+    alert('Please enter a valid deck name');
+    return;
+  }
+
+  history[index].name = newName.trim();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistoryList();
+}
+
+function editDeckFromHistory(index) {
+  const history = getDeckHistory();
+  if (index < 0 || index >= history.length) return;
+
+  const entry = history[index];
+
+  // Load the deck into the builder
+  builderDeck = entry.cards.map(card => ({
+    id: card.id,
+    name: card.name,
+    count: card.count,
+    type: card.type,
+    imageUrl: card.imageUrl,
+    set: card.set || '',
+    number: card.number || ''
+  }));
+
+  // Set the deck name in the builder
+  builderDeckName.value = entry.name;
+
+  // Reset filters
+  currentFilter = 'all';
+  standardOnly = false;
+  filterBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === 'all');
+  });
+  standardOnlyToggle.checked = false;
+
+  // Clear search
+  cardSearchInput.value = '';
+  searchResults.innerHTML = '<div class="search-placeholder">Type to search for cards...</div>';
+
+  // Render the deck in the builder
+  renderBuilderDeck();
+
+  // Close history modal and open deck builder
+  closeHistory();
+  deckBuilderModal.classList.add('active');
+  cardSearchInput.focus();
 }
 
 // ========== Deck Builder Functions ==========
@@ -303,6 +414,7 @@ function openDeckBuilder() {
   standardOnlyToggle.checked = false;
 
   cardSearchInput.value = '';
+  builderDeckName.value = currentDeckName !== 'No Deck Loaded' ? currentDeckName : '';
   searchResults.innerHTML = '<div class="search-placeholder">Type to search for cards...</div>';
 
   renderBuilderDeck();
@@ -523,9 +635,21 @@ function saveDeck() {
     number: card.number || ''
   }));
 
-  saveDeckToHistory(deck);
+  const customName = builderDeckName.value.trim();
+
+  // Determine the deck name
+  if (customName) {
+    currentDeckName = customName;
+  } else {
+    const pokemonCards = deck.filter(c => c.type === 'Pokemon');
+    const topCards = pokemonCards.slice(0, 3).map(c => c.name);
+    currentDeckName = topCards.length > 0 ? topCards.join(', ') : 'Unnamed Deck';
+  }
+
+  saveDeckToHistory(deck, customName);
   renderDeckList();
   updateStats();
+  updateDeckNameDisplay();
   closeDeckBuilder();
 }
 
@@ -533,6 +657,7 @@ function saveDeck() {
 
 function openImportDeck() {
   deckImportText.value = '';
+  importDeckName.value = '';
   importError.textContent = '';
   importError.classList.remove('visible');
   importDeckModal.classList.add('active');
@@ -640,14 +765,29 @@ function importDeck() {
     number: card.number || ''
   }));
 
-  saveDeckToHistory(deck);
+  const customName = importDeckName.value.trim();
+
+  // Determine the deck name
+  if (customName) {
+    currentDeckName = customName;
+  } else {
+    const pokemonCards = deck.filter(c => c.type === 'Pokemon');
+    const topCards = pokemonCards.slice(0, 3).map(c => c.name);
+    currentDeckName = topCards.length > 0 ? topCards.join(', ') : 'Unnamed Deck';
+  }
+
+  saveDeckToHistory(deck, customName);
   renderDeckList();
   updateStats();
+  updateDeckNameDisplay();
   closeImportDeck();
 }
 
 // Event Listeners
 function setupEventListeners() {
+  console.log('Setting up event listeners...');
+  console.log('deckHistoryList element:', deckHistoryList);
+
   // Search in deck
   searchInput.addEventListener('input', (e) => {
     renderDeckList(e.target.value);
@@ -777,20 +917,8 @@ function setupEventListeners() {
   historyBtn.addEventListener('click', openHistory);
   closeHistoryBtn.addEventListener('click', closeHistory);
 
-  deckHistoryList.addEventListener('click', (e) => {
-    const loadBtn = e.target.closest('.history-load-btn');
-    if (loadBtn) {
-      const index = parseInt(loadBtn.dataset.index, 10);
-      loadDeckFromHistory(index);
-      return;
-    }
-
-    const deleteBtn = e.target.closest('.history-delete-btn');
-    if (deleteBtn) {
-      const index = parseInt(deleteBtn.dataset.index, 10);
-      deleteDeckFromHistory(index);
-    }
-  });
+  // Note: Individual button click handlers are now set up in renderHistoryList()
+  console.log('History event listeners set up');
 }
 
 // Keyboard shortcuts
