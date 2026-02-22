@@ -26,9 +26,6 @@ The overlay displays:
 
 ## Installation
 
-See [SETUP.md](SETUP.md) for detailed installation instructions.
-
-**Quick start:**
 ```bash
 npm install
 npm start
@@ -69,7 +66,7 @@ npm start
 
 ### Managing Deck History
 
-1. Click **Deck History** to view your saved decks
+1. Click **History** to view your saved decks
 2. **Edit** - Opens the deck in Build Deck UI for full editing
 3. **Load** - Loads the deck into the main view
 4. **Delete** - Removes the deck from history
@@ -84,8 +81,8 @@ npm start
 
 ### Match History
 
-1. Click **Match History** at the bottom of the overlay
-2. Click **Import Match** to add a new game log
+1. Click **Matches** at the bottom of the overlay
+2. Click **+ Import** to add a new game log
 3. Paste the battle log from Pokemon TCG Live and click **Import**
 4. View match results (win/loss), opponent names, and timestamps
 5. Click on a match to see the full turn-by-turn breakdown
