@@ -11,6 +11,8 @@ A desktop overlay application that helps you view and manage your Pokemon TCG Li
 - **Deck History** - Automatically saves your last 10 decks with Edit, Load, and Delete functions
 - **Custom Deck Names** - Name your decks or use auto-generated names based on key Pokemon
 - **Card Preview** - Hover over any card to see its full image
+- **Match History** - Import Pokemon TCG Live battle logs and track your last 50 matches with win/loss results
+- **Battle Log Viewer** - Turn-by-turn breakdown of imported game logs
 - **Search & Filter** - Quickly find cards in your deck or when building
 - **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy with set/number sorting
 - **Draggable & Resizable** - Position the overlay wherever works best
@@ -80,12 +82,21 @@ npm start
 - Cards are organized by type: Pokemon, Trainer, Energy
 - Each section shows the total count (e.g., "Pokemon (18)")
 
+### Match History
+
+1. Click **Match History** at the bottom of the overlay
+2. Click **Import Match** to add a new game log
+3. Paste the battle log from Pokemon TCG Live and click **Import**
+4. View match results (win/loss), opponent names, and timestamps
+5. Click on a match to see the full turn-by-turn breakdown
+6. History keeps your last 50 matches
+
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac) | Toggle overlay visibility |
-| `Escape` | Close open modals (Build Deck, Import Deck, Deck History) |
+| `Escape` | Close open modals (Build Deck, Import Deck, Deck History, Match History) |
 
 ## Project Structure
 
@@ -96,11 +107,11 @@ ptcgl-deck-tracker/
 ├── index.html           # UI structure
 ├── styles.css           # Styling
 ├── card-database.js     # Card database loader and search
+├── game-log-parser.js   # Pokemon TCG Live battle log parser
 ├── package.json         # Dependencies and scripts
-├── scripts/
-│   └── sync-cards.js    # Pokemon TCG API card sync
-└── pokemon-tcg-data/    # Card data (from Pokemon TCG Data repo)
-    └── cards/en/        # English card JSON files by set
+└── pokemon-tcg-data/    # Card data (git submodule from Pokemon TCG Data repo)
+    ├── cards/en/        # English card JSON files by set
+    └── sets/en.json     # Set metadata with PTCGL codes
 ```
 
 ## Card Database
@@ -119,6 +130,8 @@ To update the card database, pull the latest from the pokemon-tcg-data submodule
 - Transparent, frameless overlay window with `screen-saver` level always-on-top
 - Card database with efficient search by name, type, and Standard legality
 - Deck history stored in localStorage (last 10 decks, auto-deduplication)
+- Match history stored in localStorage (last 50 matches)
+- Battle log parser detects players, win/loss results, and turn-by-turn actions
 - Works with the game in any mode including exclusive fullscreen
 
 ## Legal
