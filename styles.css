@@ -967,3 +967,126 @@ body {
   -webkit-app-region: no-drag;
   cursor: pointer;
 }
+
+/* ========== Match History Styles ========== */
+
+.match-result-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.result-win {
+  background: rgba(76, 175, 80, 0.3);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+}
+
+.result-loss {
+  background: rgba(244, 67, 54, 0.3);
+  color: #ef9a9a;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+}
+
+.result-unknown {
+  background: rgba(158, 158, 158, 0.3);
+  color: #bdbdbd;
+  border: 1px solid rgba(158, 158, 158, 0.5);
+}
+
+.deck-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Match Detail Modal */
+
+.match-detail {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.match-detail-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(100, 100, 120, 0.3);
+  margin-bottom: 10px;
+}
+
+.match-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.match-detail-title h3 {
+  margin: 0;
+}
+
+.match-detail-date {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.match-detail-log {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Turn sections */
+
+.turn-section {
+  margin-bottom: 4px;
+}
+
+.turn-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(40, 40, 60, 0.5);
+  border: 1px solid rgba(100, 100, 120, 0.3);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+.turn-section-header:hover {
+  background: rgba(50, 50, 70, 0.7);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.turn-section-header.user-turn {
+  border-left: 3px solid #ffd700;
+}
+
+.turn-toggle {
+  font-size: 10px;
+  width: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.turn-section-content {
+  padding: 6px 10px 6px 28px;
+  border-left: 1px solid rgba(100, 100, 120, 0.2);
+  margin-left: 6px;
+}
+
+.turn-action-line {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  line-height: 1.6;
+  font-family: monospace;
+}

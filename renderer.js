@@ -1,5 +1,6 @@
 const { ipcRenderer } = require('electron');
 const cardDatabase = require('./card-database');
+const { parseGameLog } = require('./game-log-parser');
 
 // Load the card database
 cardDatabase.load();
@@ -17,6 +18,10 @@ let searchDebounceTimer = null;
 // Deck History
 const HISTORY_KEY = 'deckHistory';
 const MAX_HISTORY = 10;
+
+// Match History
+const MATCH_HISTORY_KEY = 'matchHistory';
+const MAX_MATCHES = 50;
 
 // DOM Elements
 const deckList = document.getElementById('deck-list');
@@ -58,6 +63,24 @@ const closeHistoryBtn = document.getElementById('close-history-btn');
 
 // Deck Builder Name Input
 const builderDeckName = document.getElementById('builder-deck-name');
+
+// Match History DOM Elements
+const matchesBtn = document.getElementById('matches-btn');
+const importMatchModal = document.getElementById('import-match-modal');
+const matchImportText = document.getElementById('match-import-text');
+const matchImportError = document.getElementById('match-import-error');
+const importMatchBtn = document.getElementById('import-match-btn');
+const cancelImportMatchBtn = document.getElementById('cancel-import-match-btn');
+const matchHistoryModal = document.getElementById('match-history-modal');
+const matchHistoryList = document.getElementById('match-history-list');
+const importMatchFromHistoryBtn = document.getElementById('import-match-from-history-btn');
+const closeMatchHistoryBtn = document.getElementById('close-match-history-btn');
+const matchDetailModal = document.getElementById('match-detail-modal');
+const matchDetailBackBtn = document.getElementById('match-detail-back-btn');
+const matchDetailOpponent = document.getElementById('match-detail-opponent');
+const matchDetailResult = document.getElementById('match-detail-result');
+const matchDetailDate = document.getElementById('match-detail-date');
+const matchDetailLog = document.getElementById('match-detail-log');
 
 // Initialize UI
 function init() {
@@ -783,6 +806,211 @@ function importDeck() {
   closeImportDeck();
 }
 
+// ========== Match History Functions ==========
+
+function getMatchHistory() {
+  try {
+    const history = localStorage.getItem(MATCH_HISTORY_KEY);
+    return history ? JSON.parse(history) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMatch(parsedLog) {
+  const history = getMatchHistory();
+  history.unshift(parsedLog);
+  if (history.length > MAX_MATCHES) {
+    history.length = MAX_MATCHES;
+  }
+  localStorage.setItem(MATCH_HISTORY_KEY, JSON.stringify(history));
+}
+
+function deleteMatch(id) {
+  let history = getMatchHistory();
+  history = history.filter(m => m.id !== id);
+  localStorage.setItem(MATCH_HISTORY_KEY, JSON.stringify(history));
+  renderMatchHistoryList();
+}
+
+function openImportMatch() {
+  matchImportText.value = '';
+  matchImportError.textContent = '';
+  matchImportError.classList.remove('visible');
+  importMatchModal.classList.add('active');
+  matchImportText.focus();
+}
+
+function closeImportMatch() {
+  importMatchModal.classList.remove('active');
+}
+
+function importMatch() {
+  const text = matchImportText.value.trim();
+  if (!text) {
+    matchImportError.textContent = 'Please paste a game log';
+    matchImportError.classList.add('visible');
+    return;
+  }
+
+  try {
+    const parsed = parseGameLog(text);
+
+    if (parsed.turns.length === 0 && parsed.setup.length === 0) {
+      matchImportError.textContent = 'Could not parse the game log. Make sure you paste the full log from Pokemon TCG Live.';
+      matchImportError.classList.add('visible');
+      return;
+    }
+
+    saveMatch(parsed);
+    closeImportMatch();
+    openMatchHistory();
+  } catch (err) {
+    matchImportError.textContent = 'Error parsing game log: ' + err.message;
+    matchImportError.classList.add('visible');
+  }
+}
+
+function openMatchHistory() {
+  renderMatchHistoryList();
+  matchHistoryModal.classList.add('active');
+}
+
+function closeMatchHistory() {
+  matchHistoryModal.classList.remove('active');
+}
+
+function renderMatchHistoryList() {
+  const history = getMatchHistory();
+  matchHistoryList.innerHTML = '';
+
+  if (history.length === 0) {
+    matchHistoryList.innerHTML = '<div class="empty-state">No matches recorded yet. Import a game log to get started.</div>';
+    return;
+  }
+
+  history.forEach((match) => {
+    const entryEl = document.createElement('div');
+    entryEl.className = 'history-entry match-history-entry';
+
+    const date = new Date(match.timestamp);
+    const dateStr = date.toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString(undefined, {
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const resultClass = match.result === 'win' ? 'result-win' : match.result === 'loss' ? 'result-loss' : 'result-unknown';
+    const resultText = match.result === 'win' ? 'W' : match.result === 'loss' ? 'L' : '?';
+
+    const infoEl = document.createElement('div');
+    infoEl.className = 'history-entry-info';
+    infoEl.style.cursor = 'pointer';
+    infoEl.innerHTML = `
+      <div class="history-entry-name">
+        <span class="match-result-badge ${resultClass}">${resultText}</span>
+        vs. ${match.opponentName}
+      </div>
+      <div class="history-entry-meta">${match.turns.length} turns - ${dateStr} ${timeStr}</div>
+    `;
+    infoEl.onclick = () => openMatchDetail(match.id);
+
+    const actionsEl = document.createElement('div');
+    actionsEl.className = 'history-entry-actions';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'action-btn secondary history-delete-btn';
+    deleteBtn.textContent = 'X';
+    deleteBtn.onclick = () => deleteMatch(match.id);
+
+    actionsEl.appendChild(deleteBtn);
+
+    entryEl.appendChild(infoEl);
+    entryEl.appendChild(actionsEl);
+    matchHistoryList.appendChild(entryEl);
+  });
+}
+
+function openMatchDetail(matchId) {
+  const history = getMatchHistory();
+  const match = history.find(m => m.id === matchId);
+  if (!match) return;
+
+  // Set header info
+  matchDetailOpponent.textContent = `vs. ${match.opponentName}`;
+
+  const resultClass = match.result === 'win' ? 'result-win' : match.result === 'loss' ? 'result-loss' : 'result-unknown';
+  const resultText = match.result === 'win' ? 'WIN' : match.result === 'loss' ? 'LOSS' : '???';
+  matchDetailResult.textContent = resultText;
+  matchDetailResult.className = `match-result-badge ${resultClass}`;
+
+  const date = new Date(match.timestamp);
+  matchDetailDate.textContent = date.toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  }) + ' ' + date.toLocaleTimeString(undefined, {
+    hour: '2-digit', minute: '2-digit'
+  });
+
+  // Render turn-by-turn log
+  matchDetailLog.innerHTML = '';
+
+  // Setup section
+  if (match.setup.length > 0) {
+    const setupSection = createTurnSection('Setup', match.setup, true);
+    matchDetailLog.appendChild(setupSection);
+  }
+
+  // Turn sections
+  match.turns.forEach((turn) => {
+    const turnLabel = `Turn ${turn.turnNumber}` + (turn.player ? ` — ${turn.player}` : '');
+    const isUserTurn = turn.player === match.playerName;
+    const turnSection = createTurnSection(turnLabel, turn.actions, false, isUserTurn);
+    matchDetailLog.appendChild(turnSection);
+  });
+
+  // Hide match history, show detail
+  matchHistoryModal.classList.remove('active');
+  matchDetailModal.classList.add('active');
+}
+
+function createTurnSection(label, lines, startExpanded = false, isUserTurn = false) {
+  const section = document.createElement('div');
+  section.className = 'turn-section';
+
+  const header = document.createElement('div');
+  header.className = 'turn-section-header' + (isUserTurn ? ' user-turn' : '');
+  header.innerHTML = `<span class="turn-toggle">${startExpanded ? '▼' : '▶'}</span> ${label}`;
+
+  const content = document.createElement('div');
+  content.className = 'turn-section-content';
+  if (!startExpanded) {
+    content.style.display = 'none';
+  }
+
+  lines.forEach(line => {
+    const lineEl = document.createElement('div');
+    lineEl.className = 'turn-action-line';
+    lineEl.textContent = line;
+    content.appendChild(lineEl);
+  });
+
+  header.onclick = () => {
+    const isOpen = content.style.display !== 'none';
+    content.style.display = isOpen ? 'none' : 'block';
+    header.querySelector('.turn-toggle').textContent = isOpen ? '▶' : '▼';
+  };
+
+  section.appendChild(header);
+  section.appendChild(content);
+  return section;
+}
+
+function closeMatchDetail() {
+  matchDetailModal.classList.remove('active');
+  openMatchHistory();
+}
+
 // Event Listeners
 function setupEventListeners() {
   console.log('Setting up event listeners...');
@@ -917,6 +1145,17 @@ function setupEventListeners() {
   historyBtn.addEventListener('click', openHistory);
   closeHistoryBtn.addEventListener('click', closeHistory);
 
+  // ========== Match History Events ==========
+  matchesBtn.addEventListener('click', openMatchHistory);
+  importMatchBtn.addEventListener('click', importMatch);
+  cancelImportMatchBtn.addEventListener('click', closeImportMatch);
+  importMatchFromHistoryBtn.addEventListener('click', () => {
+    closeMatchHistory();
+    openImportMatch();
+  });
+  closeMatchHistoryBtn.addEventListener('click', closeMatchHistory);
+  matchDetailBackBtn.addEventListener('click', closeMatchDetail);
+
   // Note: Individual button click handlers are now set up in renderHistoryList()
   console.log('History event listeners set up');
 }
@@ -932,6 +1171,15 @@ document.addEventListener('keydown', (e) => {
     }
     if (deckHistoryModal.classList.contains('active')) {
       closeHistory();
+    }
+    if (importMatchModal.classList.contains('active')) {
+      closeImportMatch();
+    }
+    if (matchDetailModal.classList.contains('active')) {
+      closeMatchDetail();
+    }
+    if (matchHistoryModal.classList.contains('active')) {
+      closeMatchHistory();
     }
   }
 });

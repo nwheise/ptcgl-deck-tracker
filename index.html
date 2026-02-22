@@ -48,6 +48,7 @@
       <button id="import-btn" class="action-btn secondary">Build Deck</button>
       <button id="import-text-btn" class="action-btn secondary">Import Deck</button>
       <button id="history-btn" class="action-btn secondary">History</button>
+      <button id="matches-btn" class="action-btn secondary">Matches</button>
     </div>
   </div>
 
@@ -142,6 +143,53 @@
         <button id="save-deck-btn" class="action-btn">Save Deck</button>
         <button id="cancel-deck-btn" class="action-btn secondary">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Import Match Log Modal -->
+  <div id="import-match-modal" class="modal">
+    <div class="modal-content import-deck">
+      <div class="import-deck-header">
+        <h3>Import Match Log</h3>
+      </div>
+      <p class="import-instructions">Paste your game log copied from Pokemon TCG Live:</p>
+      <textarea id="match-import-text" placeholder="Setup
+PlayerName chose heads for the opening coin flip.
+..."></textarea>
+      <div id="match-import-error" class="import-error"></div>
+      <div class="modal-buttons">
+        <button id="import-match-btn" class="action-btn">Import</button>
+        <button id="cancel-import-match-btn" class="action-btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match History Modal -->
+  <div id="match-history-modal" class="modal">
+    <div class="modal-content deck-history">
+      <div class="deck-history-header">
+        <h3>Match History</h3>
+        <button id="import-match-from-history-btn" class="small-btn">+ Import</button>
+      </div>
+      <div id="match-history-list" class="deck-history-list"></div>
+      <div class="modal-buttons">
+        <button id="close-match-history-btn" class="action-btn secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match Detail Modal -->
+  <div id="match-detail-modal" class="modal">
+    <div class="modal-content match-detail">
+      <div class="match-detail-header">
+        <button id="match-detail-back-btn" class="small-btn">← Back</button>
+        <div class="match-detail-title">
+          <h3 id="match-detail-opponent">vs. Opponent</h3>
+          <span id="match-detail-result" class="match-result-badge">W</span>
+        </div>
+        <div id="match-detail-date" class="match-detail-date"></div>
+      </div>
+      <div id="match-detail-log" class="match-detail-log"></div>
     </div>
   </div>
 
