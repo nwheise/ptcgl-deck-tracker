@@ -1,31 +1,31 @@
 # Pokemon TCG Live Deck Tracker
 
-A desktop overlay application that helps you view and manage your Pokemon TCG Live decks.
+A desktop overlay application for managing and viewing Pokemon TCG Live decks while you play.
 
 ## Features
 
-- **Always-on-Top Overlay** - Semi-transparent window that stays above your game (even fullscreen)
-- **Deck List View** - View all cards in your deck organized by type (Pokemon, Trainer, Energy)
-- **Deck Builder** - Search the card database and build decks visually with card previews
-- **Deck Import** - Paste deck lists exported from Pokemon TCG Live
-- **Deck History** - Automatically saves your last 10 decks with Edit, Load, and Delete functions
-- **Custom Deck Names** - Name your decks or use auto-generated names based on key Pokemon
-- **Card Preview** - Hover over any card to see its full image
-- **Match History** - Import Pokemon TCG Live battle logs and track your last 50 matches with win/loss results
-- **Battle Log Viewer** - Turn-by-turn breakdown of imported game logs
-- **Window Tracking** - Record game sessions as PNG frame sequences to a user-chosen folder for future CV/ML analysis
-- **Search & Filter** - Quickly find cards in your deck or when building
-- **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy with set/number sorting
-- **Draggable & Resizable** - Position the overlay wherever works best
-
-## Screenshot
-
-The overlay displays:
-- **Deck Name** - Current deck name at the top
-- **Deck List** - All cards organized by type with card counts and thumbnails
-- **Stats Bar** - Total card count display
+- **Always-on-Top Overlay** — Semi-transparent window that stays above your game, even in fullscreen
+- **Deck Builder** — Search the card database and build decks visually with card previews
+- **Deck Import** — Paste deck lists exported directly from Pokemon TCG Live
+- **Deck History** — Saves your last 10 decks with edit, load, and delete
+- **Card Preview** — Hover any card to see its full image
+- **Match History** — Import battle logs and track your last 50 matches with win/loss results
+- **Battle Log Viewer** — Turn-by-turn breakdown of imported game logs
+- **Window Tracking** — Capture the game window as PNG frames for CV/ML analysis
 
 ## Installation
+
+### Download a release (recommended)
+
+Go to the [Releases page](https://github.com/nwheise/ptcgl-deck-tracker/releases) and download the latest version:
+
+- **Windows** — download the `.exe` installer and run it
+- **macOS (Apple Silicon)** — download the `-arm64.dmg` and drag the app to Applications
+- **macOS (Intel)** — download the `-x64.dmg` and drag the app to Applications
+
+> **macOS note:** The app is not code-signed. On first launch macOS may block it with an "unidentified developer" warning. To bypass: right-click the app in Finder → **Open** → confirm. You only need to do this once.
+
+### Run from source
 
 ```bash
 npm install
@@ -34,123 +34,54 @@ npm start
 
 ## Usage
 
-### Building a Deck
+### Importing a deck
 
-1. Click **Build Deck** at the bottom of the overlay
-2. Search for cards by name (at least 2 characters)
-3. Filter by type (All, Pokemon, Trainer, Energy) or toggle **Standard Only**
-4. Click **Add** to add cards to your deck (respects 4-card limit, unlimited Basic Energy)
-5. Use **+/-** buttons to adjust quantities in your current deck
-6. Optionally enter a **Deck Name** or leave blank for auto-generated name
-7. Click **Save Deck** when done - deck is automatically saved to history
+1. Export your deck from Pokemon TCG Live (copies to clipboard)
+2. Click **Import Deck** in the tracker and paste the list
+3. Optionally enter a name, or leave blank for an auto-generated one
+4. Click **Import** — the deck is saved to history automatically
 
-### Importing a Deck from Pokemon TCG Live
+### Building a deck
 
-1. In Pokemon TCG Live, export your deck (copies to clipboard)
-2. Click **Import Deck** in the tracker
-3. Paste your deck list in this format:
-   ```
-   Pokémon: 6
-   1 Togekiss SSP 72
-   4 Gholdengo ex PAR 139
+1. Click **Build Deck** and search for cards (2+ characters)
+2. Filter by type or toggle **Standard Only**
+3. Click **Add** to add cards (4-card limit, unlimited Basic Energy)
+4. Click **Save Deck** when done
 
-   Trainer: 14
-   4 Ultra Ball SVI 196
-   ...
+### Match history
 
-   Energy: 8
-   4 Basic {M} Energy SVE 8
-   ...
-   ```
-4. Optionally enter a **Deck Name** or leave blank for auto-generated name
-5. Click **Import** - deck is automatically saved to history
+1. Click **Matches** → **+ Import**
+2. Paste a battle log from Pokemon TCG Live and click **Import**
+3. Click any match to see the full turn-by-turn breakdown
 
-### Managing Deck History
+### Window tracking
 
-1. Click **History** to view your saved decks
-2. **Edit** - Opens the deck in Build Deck UI for full editing
-3. **Load** - Loads the deck into the main view
-4. **Delete** - Removes the deck from history
-5. History automatically keeps your last 10 decks and removes duplicates
+1. Click **▶ Record Game Session** and choose a save folder
+2. Frames are saved as `frame_000000.png`, … at ~5 fps in a timestamped subfolder
+3. Click **■ Stop Recording** to end the session
 
-### Viewing Your Deck
-
-- Hover over any card thumbnail to see the full card image
-- Use the search bar to filter cards by name
-- Cards are organized by type: Pokemon, Trainer, Energy
-- Each section shows the total count (e.g., "Pokemon (18)")
-
-### Match History
-
-1. Click **Matches** at the bottom of the overlay
-2. Click **+ Import** to add a new game log
-3. Paste the battle log from Pokemon TCG Live and click **Import**
-4. View match results (win/loss), opponent names, and timestamps
-5. Click on a match to see the full turn-by-turn breakdown
-6. History keeps your last 50 matches
-
-### Window Tracking
-
-1. Click **▶ Record Game Session** at the bottom of the overlay
-2. A folder picker will open — choose where to save the session
-3. The app targets the Pokemon TCG Live window — if the game is not running, recording will not start and an error is shown
-4. Frames are saved as `frame_000000.png`, `frame_000001.png`, … at ~5 fps inside a timestamped sub-folder
-5. Click **■ Stop Recording** to end the session — the status bar shows the total frame count
-6. Captured frames are intended for use in future CV/ML training and ROI calibration
-
-### Keyboard Shortcuts
+### Keyboard shortcuts
 
 | Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac) | Toggle overlay visibility |
-| `Escape` | Close open modals (Build Deck, Import Deck, Deck History, Match History) |
+|---|---|
+| `Cmd/Ctrl+Shift+D` | Toggle overlay visibility |
+| `Escape` | Close open modals |
 
-## Project Structure
+## Contributing
 
 ```
 ptcgl-deck-tracker/
-├── main.js              # Electron main process
-├── renderer.js          # UI logic and deck tracking
-├── index.html           # UI structure
-├── styles.css           # Styling
-├── card-database.js     # Card database loader and search
-├── game-log-parser.js   # Pokemon TCG Live battle log parser
-├── package.json         # Dependencies and scripts
-└── pokemon-tcg-data/    # Card data (git submodule from Pokemon TCG Data repo)
-    ├── cards/en/        # English card JSON files by set
-    └── sets/en.json     # Set metadata with PTCGL codes
+├── main.js              # Electron main process, IPC handlers
+├── renderer.js          # All UI logic
+├── card-database.js     # Card data loader and search
+├── game-log-parser.js   # Battle log parser
+├── index.html / styles.css
+└── pokemon-tcg-data/    # Card data (git submodule)
 ```
 
-## Card Database
+To update card data, pull the latest from the `pokemon-tcg-data` submodule.
 
-The project includes card data from the [Pokemon TCG Data](https://github.com/PokemonTCG/pokemon-tcg-data) repository. This provides:
-- Card names, types, and images
-- Set codes for matching Pokemon TCG Live exports
-- Standard format legality information
+## Notice
 
-To update the card database, pull the latest from the pokemon-tcg-data submodule or replace the data files.
+This tool is for deck viewing and management only. It does not read game memory, inject code, automate gameplay, or interact with Pokemon TCG Live in any way. Card data is sourced from the public [Pokemon TCG Data](https://github.com/PokemonTCG/pokemon-tcg-data) repository.
 
-## Technical Details
-
-- Built with [Electron](https://www.electronjs.org/) v35
-- Uses local card data from Pokemon TCG Data repository as a git submodule
-- Transparent, frameless overlay window with `screen-saver` level always-on-top
-- Card database with efficient search by name, type, and Standard legality
-- Deck history stored in localStorage (last 10 decks, auto-deduplication)
-- Match history stored in localStorage (last 50 matches)
-- Battle log parser detects players, win/loss results, and turn-by-turn actions
-- Works with the game in any mode including exclusive fullscreen
-
-## Legal
-
-This is a deck viewing and management tool for organizing your Pokemon TCG Live decks. It does not:
-- Read game memory
-- Inject code into the game
-- Automate any gameplay
-- Interact with Pokemon TCG Live in any way
-
-Card data is sourced from the public Pokemon TCG Data repository. Always check Pokemon TCG Live's Terms of Service for any restrictions on third-party tools.
-
-## License
-
-MIT

@@ -4,21 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## IMPORTANT INSTRUCTIONS FOR CLAUDE
 - Claude must never work directly on main branch. Always use a feature branch.
-- Claude must always update the CLAUDE.md and README.md files when committing changes.
+- Claude must always update the CLAUDE.md and README.md files before committing changes.
+    - CLAUDE.md must be kept concise, it can never be more than 750 words maximum.
+    - README.md is meant for humans. It should focus on project description, usage, and essential info for humans to understand, work with, and contribute to the project. It must be no longer than 750 words.
+- Claude must bump the package version in package.json before submitting a PR.
+
 
 ## Commands
 
 - `npm start` — Launch the Electron app
 - `npm run dev` — Launch with DevTools enabled
 - `npm install` — Install dependencies
+- `npm run build` — Build distributable for the current platform (requires `electron-builder`)
+- `npm run build:mac` — Build macOS DMG (x64 + arm64)
+- `npm run build:win` — Build Windows NSIS installer
+- `npm run release` — Build and publish to GitHub Releases (requires `GH_TOKEN`)
 
-There is no test suite, linter, or build step configured.
+There is no test suite or linter configured.
+
+## Release process
+
+Releases are fully automated via GitHub Actions (`.github/workflows/release.yml`). On every push to `main`, the workflow reads the version from `package.json` and checks whether a GitHub Release for that version already exists. If not, it creates a `v{version}` git tag, then builds macOS (x64 + arm64 DMG) and Windows (NSIS installer) in parallel and publishes them as a draft GitHub Release. To cut a release:
+
+1. Bump the version in `package.json` on your feature branch
+2. Merge to `main` — the tag and draft release are created automatically
+3. Review the draft on the Releases page, then publish it
+
+The workflow checks out the `pokemon-tcg-data` git submodule recursively, so card data is included in every build.
 
 ## Architecture
 
 This is an Electron desktop overlay app for Pokemon TCG Live. It displays deck information on top of the fullscreen game using a frameless, transparent, always-on-top window at `screen-saver` z-index level.
 
-**Tech stack:** Electron v35, vanilla JavaScript, HTML/CSS. No frameworks, no build tools. The only dependency is Electron itself.
+**Tech stack:** Electron v35, vanilla JavaScript, HTML/CSS. No frameworks, no build tools. Runtime dependency: Electron. Dev tooling: `electron-builder` for packaging/distribution.
 
 ### Key files
 
