@@ -1160,6 +1160,164 @@ function setupEventListeners() {
   console.log('History event listeners set up');
 }
 
+// ─── Window Tracking ─────────────────────────────────────────────────────────
+
+// (desktopCapturer is main-process only in Electron v14+; sources fetched via IPC)
+
+// Tracking state
+let isTracking = false;
+let trackingInterval = null;
+let trackingStream = null;
+let trackingSessionDir = null;
+let trackingFrameIndex = 0;
+let trackingVideo = null;
+let trackingCanvas = null;
+let trackingCtx = null;
+
+const trackBtn = document.getElementById('track-btn');
+const trackStatus = document.getElementById('track-status');
+
+async function startTracking() {
+  if (isTracking) return;
+
+  trackStatus.textContent = 'Starting…';
+
+  try {
+    // Ask the user where to save frames
+    const baseDir = await ipcRenderer.invoke('choose-save-directory');
+    if (!baseDir) {
+      trackStatus.textContent = '';
+      return; // user cancelled the picker
+    }
+
+    // Create timestamped session sub-folder inside the chosen directory
+    trackingSessionDir = await ipcRenderer.invoke('create-tracking-session', baseDir);
+    trackingFrameIndex = 0;
+
+    // Enumerate available screen/window sources via main process
+    const sources = await ipcRenderer.invoke('get-desktop-sources');
+
+    // Only accept the Pokemon TCG Live window — no fallback
+    const source = sources.find(s =>
+      s.name.toLowerCase().includes('pokemon tcg live') ||
+      s.name.toLowerCase().includes('ptcg live')
+    );
+
+    if (!source) {
+      trackStatus.textContent = 'Error: Pokemon TCG Live window not found. Make sure the game is running.';
+      // Remove the session folder we already created since we won't use it
+      await ipcRenderer.invoke('remove-tracking-session', trackingSessionDir);
+      trackingSessionDir = null;
+      return;
+    }
+
+    // Acquire media stream from the chosen source
+    trackingStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: source.id,
+          minWidth: 1280,
+          maxWidth: 3840,
+          minHeight: 720,
+          maxHeight: 2160,
+        },
+      },
+    });
+
+    // Off-screen video element to receive stream frames
+    trackingVideo = document.createElement('video');
+    trackingVideo.srcObject = trackingStream;
+    trackingVideo.muted = true;
+    await trackingVideo.play();
+
+    // Off-screen canvas to pull frame pixels
+    trackingCanvas = document.createElement('canvas');
+    trackingCtx = trackingCanvas.getContext('2d');
+
+    isTracking = true;
+    updateTrackingUI();
+
+    // Capture loop at ~5 fps (200 ms interval)
+    trackingInterval = setInterval(async () => {
+      if (!trackingVideo || trackingVideo.readyState < 2) return;
+
+      trackingCanvas.width = trackingVideo.videoWidth;
+      trackingCanvas.height = trackingVideo.videoHeight;
+      trackingCtx.drawImage(trackingVideo, 0, 0);
+
+      const dataUrl = trackingCanvas.toDataURL('image/png');
+      const idx = trackingFrameIndex++;
+
+      try {
+        await ipcRenderer.invoke('save-frame', {
+          sessionDir: trackingSessionDir,
+          frameIndex: idx,
+          dataUrl,
+        });
+      } catch (saveErr) {
+        console.error('Frame save error:', saveErr);
+      }
+
+      // Update status every 10 frames to keep DOM churn low
+      if (idx % 10 === 0) {
+        trackStatus.textContent = `${idx} frames captured`;
+      }
+    }, 200);
+
+    console.log(`Tracking started. Source: "${source.name}". Saving to: ${trackingSessionDir}`);
+  } catch (err) {
+    console.error('Failed to start tracking:', err);
+    trackStatus.textContent = `Error: ${err.message}`;
+    isTracking = false;
+    updateTrackingUI();
+  }
+}
+
+function stopTracking() {
+  if (!isTracking) return;
+
+  clearInterval(trackingInterval);
+  trackingInterval = null;
+
+  if (trackingStream) {
+    trackingStream.getTracks().forEach(t => t.stop());
+    trackingStream = null;
+  }
+
+  trackingVideo = null;
+  trackingCanvas = null;
+  trackingCtx = null;
+
+  isTracking = false;
+  updateTrackingUI();
+
+  const msg = `Saved ${trackingFrameIndex} frames → ${trackingSessionDir}`;
+  trackStatus.textContent = `Stopped. ${trackingFrameIndex} frames saved.`;
+  console.log(msg);
+}
+
+function updateTrackingUI() {
+  if (isTracking) {
+    trackBtn.textContent = '■ Stop Recording';
+    trackBtn.classList.add('tracking-active');
+  } else {
+    trackBtn.textContent = '▶ Record Game Session';
+    trackBtn.classList.remove('tracking-active');
+  }
+}
+
+trackBtn.addEventListener('click', () => {
+  if (isTracking) {
+    stopTracking();
+  } else {
+    startTracking();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {

@@ -13,6 +13,7 @@ A desktop overlay application that helps you view and manage your Pokemon TCG Li
 - **Card Preview** - Hover over any card to see its full image
 - **Match History** - Import Pokemon TCG Live battle logs and track your last 50 matches with win/loss results
 - **Battle Log Viewer** - Turn-by-turn breakdown of imported game logs
+- **Window Tracking** - Record game sessions as PNG frame sequences to a user-chosen folder for future CV/ML analysis
 - **Search & Filter** - Quickly find cards in your deck or when building
 - **Organized by Type** - Cards grouped by Pokemon, Trainer, and Energy with set/number sorting
 - **Draggable & Resizable** - Position the overlay wherever works best
@@ -87,6 +88,15 @@ npm start
 4. View match results (win/loss), opponent names, and timestamps
 5. Click on a match to see the full turn-by-turn breakdown
 6. History keeps your last 50 matches
+
+### Window Tracking
+
+1. Click **▶ Record Game Session** at the bottom of the overlay
+2. A folder picker will open — choose where to save the session
+3. The app targets the Pokemon TCG Live window — if the game is not running, recording will not start and an error is shown
+4. Frames are saved as `frame_000000.png`, `frame_000001.png`, … at ~5 fps inside a timestamped sub-folder
+5. Click **■ Stop Recording** to end the session — the status bar shows the total frame count
+6. Captured frames are intended for use in future CV/ML training and ROI calibration
 
 ### Keyboard Shortcuts
 
