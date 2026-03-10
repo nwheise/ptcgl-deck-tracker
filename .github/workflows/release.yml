@@ -27,7 +27,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
-          if gh release view "v${VERSION}" &>/dev/null; then
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          if [ "$PATCH" != "0" ]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Version v${VERSION} is a patch release, skipping build"
+          elif gh release view "v${VERSION}" &>/dev/null; then
             echo "should_release=false" >> $GITHUB_OUTPUT
             echo "Release v${VERSION} already exists, skipping build"
           else
