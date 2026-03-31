@@ -12,6 +12,7 @@ A desktop overlay application for managing and viewing Pokemon TCG Live decks wh
 - **Match History** — Import battle logs and track your last 50 matches with win/loss results
 - **Battle Log Viewer** — Turn-by-turn breakdown of imported game logs
 - **Window Tracking** — Capture the game window as PNG frames for CV/ML analysis
+- **ML Card Detection** — YOLO + MobileNetV4 inference pipeline for detecting and identifying cards from game frames (not yet wired into the UI)
 
 ## Installation
 
@@ -29,6 +30,7 @@ Go to the [Releases page](https://github.com/nwheise/ptcgl-deck-tracker/releases
 
 ```bash
 npm install
+npm run fetch-pipeline   # download ML models (~50 MB)
 npm start
 ```
 
@@ -56,9 +58,15 @@ npm start
 
 ### Window tracking
 
-1. Click **▶ Record Game Session** and choose a save folder
-2. Frames are saved as `frame_000000.png`, … at ~5 fps in a timestamped subfolder
-3. Click **■ Stop Recording** to end the session
+1. Click **Record Game Session** and choose a save folder
+2. Frames are saved as `frame_000000.png`, ... at ~5 fps in a timestamped subfolder
+3. Click **Stop Recording** to end the session
+
+### ML inference pipeline
+
+The inference module (`inference.js`) detects and identifies cards from game frames using a YOLO object detector and MobileNetV4 embedding model. Models are downloaded from the [pokematching](https://github.com/nwheise/pokematching) project. Run `npm run fetch-pipeline` to download them, and `npm test` to validate the pipeline against golden files.
+
+This is not yet wired into the live UI — it will be integrated in a future update.
 
 ### Keyboard shortcuts
 
@@ -73,8 +81,12 @@ npm start
 ptcgl-deck-tracker/
 ├── main.js              # Electron main process, IPC handlers
 ├── renderer.js          # All UI logic
+├── inference.js         # ML inference pipeline (YOLO + MobileNetV4)
 ├── card-database.js     # Card data loader and search
 ├── game-log-parser.js   # Battle log parser
+├── npz-utils.js         # NPZ parser (used by inference.js)
+├── scripts/             # fetch-pipeline.js, model-version.json
+├── test/                # Golden file validation tests
 ├── index.html / styles.css
 └── pokemon-tcg-data/    # Card data (git submodule)
 ```
@@ -84,4 +96,3 @@ To update card data, pull the latest from the `pokemon-tcg-data` submodule.
 ## Notice
 
 This tool is for deck viewing and management only. It does not read game memory, inject code, automate gameplay, or interact with Pokemon TCG Live in any way. Card data is sourced from the public [Pokemon TCG Data](https://github.com/PokemonTCG/pokemon-tcg-data) repository.
-

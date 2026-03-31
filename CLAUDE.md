@@ -5,7 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## IMPORTANT INSTRUCTIONS FOR CLAUDE
 - Claude must never work directly on main branch. Always use a feature branch.
 - Claude must always update the CLAUDE.md and README.md files before committing changes.
-    - CLAUDE.md must be kept concise, it can never be more than 750 words maximum.
     - README.md is meant for humans. It should focus on project description, usage, and essential info for humans to understand, work with, and contribute to the project. It must be no longer than 750 words.
 - Claude must bump the package version in package.json before submitting a PR.
 
@@ -15,12 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm start` — Launch the Electron app
 - `npm run dev` — Launch with DevTools enabled
 - `npm install` — Install dependencies
+- `npm run fetch-pipeline` — Download ML pipeline assets from the pinned pokematching release into `pipeline/`
+- `npm test` — Run golden file validation tests for the inference pipeline
 - `npm run build` — Build distributable for the current platform (requires `electron-builder`)
 - `npm run build:mac` — Build macOS DMG (x64 + arm64)
 - `npm run build:win` — Build Windows NSIS installer
 - `npm run release` — Build and publish to GitHub Releases (requires `GH_TOKEN`)
-
-There is no test suite or linter configured.
 
 ## Release process
 
@@ -36,15 +35,28 @@ The workflow checks out the `pokemon-tcg-data` git submodule recursively, so car
 
 This is an Electron desktop overlay app for Pokemon TCG Live. It displays deck information on top of the fullscreen game using a frameless, transparent, always-on-top window at `screen-saver` z-index level.
 
-**Tech stack:** Electron v35, vanilla JavaScript, HTML/CSS. No frameworks, no build tools. Runtime dependency: Electron. Dev tooling: `electron-builder` for packaging/distribution.
+**Tech stack:** Electron v35, vanilla JavaScript, HTML/CSS. No frameworks, no build tools. Runtime deps: Electron, onnxruntime-node, sharp, npyjs. Dev tooling: `electron-builder` for packaging/distribution.
 
 ### Key files
 
-- **main.js** — Electron main process. Creates the overlay window, registers `Cmd/Ctrl+Shift+D` global shortcut to toggle visibility, handles IPC for minimize/close, and handles window-tracking IPC (`get-desktop-sources`, `choose-save-directory`, `create-tracking-session`, `remove-tracking-session`, `save-frame`).
-- **renderer.js** — All UI logic (~1350 lines). Manages state via module-scoped variables, renders via direct DOM manipulation (`innerHTML`), persists data to `localStorage`. Contains deck display, deck builder modal, import, history, match history, card preview, and window tracking functionality.
-- **card-database.js** — `CardDatabase` class that loads card JSON from the `pokemon-tcg-data/` git submodule. Builds indexes for fast lookup by name, set ID, PTCGL code, and set+number composite key. Supports filtered search with debouncing.
-- **game-log-parser.js** — `parseGameLog(text)` function that parses Pokemon TCG Live battle logs into structured data: player names, win/loss result, setup phase, and turn-by-turn actions.
-- **index.html** — Single-page app with main deck view and multiple modals (builder, import, history, match history, match detail, import match).
+- **main.js** — Electron main process. Creates the overlay window, registers `Cmd/Ctrl+Shift+D` global shortcut to toggle visibility, handles IPC for minimize/close and window-tracking.
+- **renderer.js** — All UI logic (~1350 lines). Manages state via module-scoped variables, renders via direct DOM manipulation (`innerHTML`), persists data to `localStorage`.
+- **inference.js** — ML inference pipeline (main process). Runs YOLO object detection + MobileNetV4 embedding + nearest-neighbor card matching. See "ML Inference Pipeline" section below.
+- **card-database.js** — `CardDatabase` class that loads card JSON from the `pokemon-tcg-data/` git submodule.
+- **game-log-parser.js** — `parseGameLog(text)` function that parses Pokemon TCG Live battle logs.
+- **scripts/fetch-pipeline.js** — Downloads pipeline assets from the pinned GitHub release into `pipeline/`.
+- **npz-utils.js** — NPZ (ZIP of NPY) parser using npyjs + minimal ZIP extraction.
+- **test/test-inference.js** — Golden file validation tests for the inference pipeline.
+
+### ML Inference Pipeline
+
+The `inference.js` module implements card detection from game frames. Models are fetched from the `nwheise/pokematching` GitHub release pinned in `scripts/model-version.json`.
+
+**Pipeline:** raw RGBA frame → YOLO preprocessing (640x640, bilinear, [0,1]) → YOLO ONNX inference → parse detections (conf > 0.25) → per-detection crop extraction (with energy/item masking) → MobileNetV4 preprocessing (resize width→224, top-crop 224x224, ImageNet normalize) → MobileNetV4 ONNX inference (1280-dim embedding) → L2 normalize → cosine similarity against reference embeddings → class-filtered top-1 match.
+
+**Class filtering:** class 0 (attached-energy) → Energy cards only; class 1 (attached-item) → Pokemon Tool only; class 2/3 (card/multicard) → all cards.
+
+The `pipeline/` directory is gitignored. Run `npm run fetch-pipeline` to populate it.
 
 ### Data flow
 
@@ -58,10 +70,6 @@ Card data comes from the `pokemon-tcg-data` git submodule (PokemonTCG/pokemon-tc
 
 - `deckHistory` — last 10 decks (localStorage)
 - `matchHistory` — last 50 matches (localStorage)
-
-### Window Tracking
-
-The window tracking feature captures the Pokemon TCG Live game window at ~5 fps using Electron's `desktopCapturer` API and `getUserMedia`. If the game window is not found, recording is refused with an error — there is no fallback to the primary screen. Before each session the user selects a base directory via a native folder-picker dialog; a timestamped sub-folder is created inside it and frames are saved as sequentially numbered PNGs (`frame_000000.png`, …). IPC channels: `get-desktop-sources` (enumerates windows/screens in main process), `choose-save-directory` (native folder picker), `create-tracking-session` (creates timestamped sub-folder, returns path), `remove-tracking-session` (deletes empty sub-folder on abort), `save-frame` (writes one PNG to disk).
 
 ### Deck import format
 
