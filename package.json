@@ -1,11 +1,13 @@
 {
   "name": "pokemon-tcg-deck-tracker",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Overlay deck tracker for Pokemon TCG Live",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
+    "fetch-pipeline": "node scripts/fetch-pipeline.js",
+    "test": "node test/test-inference.js",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
@@ -19,6 +21,11 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "npyjs": "^1.1.0",
+    "onnxruntime-node": "1.21.0",
+    "sharp": "^0.33.5"
+  },
   "devDependencies": {
     "electron": "^35.7.5",
     "electron-builder": "^26.8.1"
@@ -30,7 +37,20 @@
       "**/*",
       "!.github/**/*",
       "!.gitmodules",
-      "!CLAUDE.md"
+      "!CLAUDE.md",
+      "!scripts/**/*",
+      "!test/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**",
+      "node_modules/sharp/**"
+    ],
+    "extraResources": [
+      {
+        "from": "pipeline",
+        "to": "pipeline",
+        "filter": ["**/*", "!golden/**/*"]
+      }
     ],
     "mac": {
       "target": [
